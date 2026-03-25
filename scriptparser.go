@@ -1,0 +1,132 @@
+package scriptparser
+
+import (
+	"io/fs"
+	"runtime"
+	"strings"
+	"sync"
+
+	"github.com/VictoriqueMoe/umineko_script_parser/dto"
+	"github.com/VictoriqueMoe/umineko_script_parser/lexer"
+	"github.com/VictoriqueMoe/umineko_script_parser/lexer/transformer"
+	"github.com/VictoriqueMoe/umineko_script_parser/quote/character"
+	"github.com/VictoriqueMoe/umineko_script_parser/quote/loader"
+)
+
+type (
+	ParsedQuote = dto.ParsedQuote
+
+	parser struct {
+		extractor *lexer.QuoteExtractor
+		factory   *transformer.Factory
+	}
+)
+
+func Parse(script string) []ParsedQuote {
+	p := newParser()
+	return p.parse(strings.Split(script, "\n"))
+}
+
+func NewLoader(efs fs.ReadFileFS) *loader.Loader {
+	return loader.New(efs, func(lines []string) ([]dto.ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
+		p := newParser()
+		quotes := p.parse(lines)
+		return quotes, p.extractor.SubtitleRefs(), p.extractor.ValidationErrors()
+	})
+}
+
+func newParser() *parser {
+	extractor := lexer.NewQuoteExtractor()
+
+	return &parser{
+		extractor: extractor,
+		factory:   transformer.NewFactory(extractor.Presets()),
+	}
+}
+
+func (p *parser) parse(lines []string) []ParsedQuote {
+	filtered := make([]string, 0, len(lines)/8)
+	for _, line := range lines {
+		if len(line) < 2 {
+			continue
+		}
+		switch line[0] {
+		case 'd':
+			if line[1] == ' ' || (line[1] == '2' && len(line) > 2 && line[2] == ' ') {
+				filtered = append(filtered, line)
+			}
+		case 'p':
+			if len(line) > 13 && line[:13] == "preset_define" {
+				filtered = append(filtered, line)
+			}
+		case 'n':
+			if len(line) > 4 && line[:4] == "new_" {
+				filtered = append(filtered, line)
+			}
+		case '*':
+			filtered = append(filtered, line)
+		case 's':
+			if len(line) > 8 && line[:8] == "stralias" {
+				filtered = append(filtered, line)
+			} else if len(line) > 8 && line[:8] == "ssa_load" {
+				filtered = append(filtered, line)
+			}
+		case 'l':
+			if len(line) > 2 && line[:2] == "lv" && line[2] == ' ' {
+				filtered = append(filtered, line)
+			}
+		}
+	}
+
+	input := strings.Join(filtered, "\n")
+	extracted := p.extractor.ExtractQuotes(input)
+	quotes := make([]ParsedQuote, len(extracted))
+
+	plainText := p.factory.MustGet(transformer.FormatPlainText)
+	htmlText := p.factory.MustGet(transformer.FormatHTML)
+
+	numWorkers := runtime.GOMAXPROCS(0)
+	chunkSize := (len(extracted) + numWorkers - 1) / numWorkers
+
+	var wg sync.WaitGroup
+	for w := 0; w < numWorkers; w++ {
+		start := w * chunkSize
+		end := start + chunkSize
+		if end > len(extracted) {
+			end = len(extracted)
+		}
+		if start >= end {
+			break
+		}
+		wg.Go(func() {
+			for i := start; i < end; i++ {
+				eq := &extracted[i]
+
+				var audioTextMap map[string]string
+				if len(eq.AudioTextMap) > 0 {
+					audioTextMap = make(map[string]string, len(eq.AudioTextMap))
+					for audioID, fragment := range eq.AudioTextMap {
+						audioTextMap[audioID] = plainText.Transform(fragment)
+					}
+				}
+
+				quotes[i] = ParsedQuote{
+					Text:         plainText.Transform(eq.Content),
+					TextHtml:     htmlText.Transform(eq.Content),
+					CharacterID:  eq.CharacterID,
+					Character:    character.CharacterNames.GetCharacterName(character.CharacterFromID(eq.CharacterID)),
+					AudioID:      eq.AudioID,
+					AudioCharMap: eq.AudioCharMap,
+					AudioTextMap: audioTextMap,
+					Episode:      eq.Episode,
+					ContentType:  eq.ContentType,
+					HasRedTruth:  eq.Truth.HasRed,
+					HasBlueTruth: eq.Truth.HasBlue,
+				}
+			}
+		})
+	}
+	wg.Wait()
+
+	return quotes
+}
