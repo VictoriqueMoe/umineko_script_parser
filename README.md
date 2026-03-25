@@ -2,6 +2,95 @@
 
 A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game script files. Extracts structured dialogue quotes with character attribution, episode metadata, voice audio references, red/blue truth detection, and both plain text and HTML output.
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Source Text                                    │
+│  d [lv 0*"27"*"10100001"]`"{p:1:Without love, it cannot be seen.}"`[\]     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           LEXER (lexer/)                                    │
+│  Tokenises input into a stream of typed tokens                              │
+│  • TokenCommand: "d"                                                        │
+│  • TokenInlineCommand: "lv 0*\"27\"*\"10100001\""                           │
+│  • TokenFormatTag: "p:1:Without love, it cannot be seen."                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          PARSER (lexer/)                                    │
+│  Builds Abstract Syntax Tree from tokens                                    │
+│                                                                             │
+│  Script                                                                     │
+│   └── Lines[]                                                               │
+│        ├── EpisodeMarkerLine { Episode: 1, Type: "episode" }                │
+│        ├── PresetDefineLine { ID: 1, Colour: "#FF0000" }                    │
+│        └── DialogueLine                                                     │
+│             ├── Command: "d"                                                │
+│             └── Content[]                                                   │
+│                  ├── VoiceCommand { CharacterID: "27", AudioID: "..." }     │
+│                  └── FormatTag { Name: "p", Param: "1", Content: [...] }    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       VALIDATOR (lexer/)                                     │
+│  Post-parse AST validation (non-fatal)                                      │
+│                                                                             │
+│  • Unknown format tags        • Missing voice command fields                │
+│  • Missing episode numbers    • Logged, never blocks parsing                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       EXTRACTOR (lexer/)                                    │
+│  Walks AST, extracts quotes with metadata                                   │
+│                                                                             │
+│  ExtractedQuote {                                                           │
+│      Content:     []DialogueElement                                         │
+│      CharacterID: "27"                                                      │
+│      AudioID:     "10100001"                                                │
+│      Episode:     1                                                         │
+│      Truth:       { HasRed: true, HasBlue: false }                          │
+│  }                                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   TRANSFORMERS (lexer/transformer/)                         │
+│  Converts raw AST to output formats                                         │
+│                                                                             │
+│  PlainTextTransformer ──► "Without love, it cannot be seen."                │
+│  HtmlTransformer      ──► "<span class=\"red-truth\">...</span>"           │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ParsedQuote (dto/)                                  │
+│                                                                             │
+│  { Text, TextHtml, CharacterID, Character, AudioID, Episode, ... }         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+When using `NewLoader`, two additional stages run before the pipeline above:
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  ONS2 .file  │───►│   Decoder    │───►│  Parse (above│───►│   Mutation   │
+│  (encrypted) │    │  (decoder/)  │    │   pipeline)  │    │   Pipeline   │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+                                              │
+                                     ┌────────┴────────┐
+                                     │  Subtitle Refs   │
+                                     │  (.ass files)    │
+                                     │  resolved by     │
+                                     │  loader          │
+                                     └─────────────────┘
+```
+
 ## Installation
 
 ```bash
