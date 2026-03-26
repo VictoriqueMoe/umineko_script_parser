@@ -23,4 +23,8 @@ type ParsedQuote struct {
 	HasRedTruth bool `json:"hasRedTruth,omitempty" example:"false"`
 	// Whether the quote contains blue truth
 	HasBlueTruth bool `json:"hasBlueTruth,omitempty" example:"false"`
+	// Whether the quote contains gold truth
+	HasGoldTruth bool `json:"hasGoldTruth,omitempty" example:"false"`
+	// Whether the quote contains purple statements
+	HasPurpleTruth bool `json:"hasPurpleTruth,omitempty" example:"false"`
 }

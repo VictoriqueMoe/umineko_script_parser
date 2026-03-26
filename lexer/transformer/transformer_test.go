@@ -16,8 +16,14 @@ func TestDefaultSemanticPresets(t *testing.T) {
 	if presets["2"] != "blue-truth" {
 		t.Errorf("preset 2 = %q, want %q", presets["2"], "blue-truth")
 	}
-	if len(presets) != 2 {
-		t.Errorf("expected 2 default presets, got %d", len(presets))
+	if presets["41"] != "gold-truth" {
+		t.Errorf("preset 41 = %q, want %q", presets["41"], "gold-truth")
+	}
+	if presets["42"] != "purple-truth" {
+		t.Errorf("preset 42 = %q, want %q", presets["42"], "purple-truth")
+	}
+	if len(presets) != 4 {
+		t.Errorf("expected 4 default presets, got %d", len(presets))
 	}
 }
 
@@ -51,10 +57,10 @@ func TestGetSemanticClass(t *testing.T) {
 
 func TestGetDynamicColour(t *testing.T) {
 	ctx := NewPresetContext()
-	ctx.DynamicColours["42"] = "#AA71FF"
+	ctx.DynamicColours["50"] = "#AA71FF"
 
-	if got := ctx.GetDynamicColour("42"); got != "#AA71FF" {
-		t.Errorf("GetDynamicColour(42) = %q, want %q", got, "#AA71FF")
+	if got := ctx.GetDynamicColour("50"); got != "#AA71FF" {
+		t.Errorf("GetDynamicColour(50) = %q, want %q", got, "#AA71FF")
 	}
 	if got := ctx.GetDynamicColour("99"); got != "" {
 		t.Errorf("GetDynamicColour(99) = %q, want empty", got)
@@ -72,11 +78,11 @@ func TestCollectFromScript(t *testing.T) {
 
 	ctx.CollectFromScript(script)
 
-	if got := ctx.GetDynamicColour("41"); got != "#FFAA00" {
-		t.Errorf("preset 41 colour = %q, want %q", got, "#FFAA00")
+	if got := ctx.GetSemanticClass("41"); got != "gold-truth" {
+		t.Errorf("preset 41 class = %q, want %q", got, "gold-truth")
 	}
-	if got := ctx.GetDynamicColour("42"); got != "#AA71FF" {
-		t.Errorf("preset 42 colour = %q, want %q (should be uppercased)", got, "#AA71FF")
+	if got := ctx.GetSemanticClass("42"); got != "purple-truth" {
+		t.Errorf("preset 42 class = %q, want %q", got, "purple-truth")
 	}
 }
 
@@ -146,8 +152,8 @@ func TestCollectFromScript_ResetsOnEachCall(t *testing.T) {
 	if got := ctx.GetDynamicColour("99"); got != "" {
 		t.Errorf("expected preset 99 to be cleared after second collection, got %q", got)
 	}
-	if ctx.GetDynamicColour("41") == "" {
-		t.Error("expected default preset 41 to persist after reset")
+	if ctx.GetSemanticClass("41") == "" {
+		t.Error("expected semantic preset 41 to persist after reset")
 	}
 }
 
@@ -174,10 +180,7 @@ func TestCollectFromScript_IgnoresNonPresetLines(t *testing.T) {
 }
 
 func newTestHtmlTransformer() *HtmlTransformer {
-	ctx := NewPresetContext()
-	ctx.DynamicColours["41"] = "#FFAA00"
-	ctx.DynamicColours["42"] = "#AA71FF"
-	return NewHtmlTransformer(ctx)
+	return NewHtmlTransformer(NewPresetContext())
 }
 
 func TestHtml_PlainText(t *testing.T) {
@@ -404,32 +407,35 @@ func TestHtml_PresetBlueTruth(t *testing.T) {
 	}
 }
 
-func TestHtml_PresetDynamicColour(t *testing.T) {
-	tests := []struct {
-		name   string
-		preset string
-		colour string
-	}{
-		{"gold", "41", "#FFAA00"},
-		{"purple", "42", "#AA71FF"},
+func TestHtml_PresetGoldTruth(t *testing.T) {
+	tr := newTestHtmlTransformer()
+	elements := []ast.DialogueElement{
+		&ast.FormatTag{
+			Name:    "p",
+			Param:   "41",
+			Content: []ast.DialogueElement{&ast.PlainText{Text: "gold text"}},
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := newTestHtmlTransformer()
-			elements := []ast.DialogueElement{
-				&ast.FormatTag{
-					Name:    "p",
-					Param:   tt.preset,
-					Content: []ast.DialogueElement{&ast.PlainText{Text: "styled text"}},
-				},
-			}
+	got := tr.Transform(elements)
+	if !strings.Contains(got, `class="gold-truth"`) {
+		t.Errorf("expected gold-truth class: %q", got)
+	}
+}
 
-			got := tr.Transform(elements)
-			if !strings.Contains(got, "color:"+tt.colour) {
-				t.Errorf("expected colour %s: %q", tt.colour, got)
-			}
-		})
+func TestHtml_PresetPurpleTruth(t *testing.T) {
+	tr := newTestHtmlTransformer()
+	elements := []ast.DialogueElement{
+		&ast.FormatTag{
+			Name:    "p",
+			Param:   "42",
+			Content: []ast.DialogueElement{&ast.PlainText{Text: "purple text"}},
+		},
+	}
+
+	got := tr.Transform(elements)
+	if !strings.Contains(got, `class="purple-truth"`) {
+		t.Errorf("expected purple-truth class: %q", got)
 	}
 }
 
