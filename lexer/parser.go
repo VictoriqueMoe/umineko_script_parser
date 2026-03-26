@@ -100,6 +100,10 @@ func (p *Parser) parseCommand(tok ast.Token) ast.Line {
 		return p.parseStralias(tok)
 	case "ssa_load":
 		return p.parseSsaLoad(tok)
+	case "seplay", "meplay":
+		return p.parseSeplay(tok)
+	case "wait_on_d":
+		return p.parseWaitOnD(tok)
 	default:
 		return p.parseGenericCommand(tok)
 	}
@@ -320,6 +324,46 @@ func (p *Parser) parseSsaLoad(tok ast.Token) *ast.SsaLoadLine {
 	}
 
 	return ssl
+}
+
+func (p *Parser) parseSeplay(tok ast.Token) *ast.SeplayLine {
+	se := &ast.SeplayLine{Pos: tok}
+
+	if p.peek().Type == ast.TokenNumber {
+		se.Channel, _ = strconv.Atoi(p.advance().Value)
+	}
+	if p.peek().Type == ast.TokenComma {
+		p.advance()
+	}
+	if p.peek().Type == ast.TokenNumber {
+		se.SeNum, _ = strconv.Atoi(p.advance().Value)
+	}
+	if p.peek().Type == ast.TokenComma {
+		p.advance()
+	}
+	if p.peek().Type == ast.TokenNumber {
+		se.Volume, _ = strconv.Atoi(p.advance().Value)
+	}
+
+	for p.peek().Type != ast.TokenEOF && p.peek().Type != ast.TokenNewline {
+		p.advance()
+	}
+
+	return se
+}
+
+func (p *Parser) parseWaitOnD(tok ast.Token) *ast.WaitOnDLine {
+	w := &ast.WaitOnDLine{Pos: tok}
+
+	if p.peek().Type == ast.TokenNumber {
+		w.Segment, _ = strconv.Atoi(p.advance().Value)
+	}
+
+	for p.peek().Type != ast.TokenEOF && p.peek().Type != ast.TokenNewline {
+		p.advance()
+	}
+
+	return w
 }
 
 func (p *Parser) parseGenericCommand(tok ast.Token) *ast.CommandLine {

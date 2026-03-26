@@ -186,6 +186,18 @@ type (
 		Rate     int
 		Pos      Token
 	}
+
+	SeplayLine struct {
+		Channel int
+		SeNum   int
+		Volume  int
+		Pos     Token
+	}
+
+	WaitOnDLine struct {
+		Segment int
+		Pos     Token
+	}
 )
 
 func (s *Script) nodeType() string            { return "Script" }
@@ -219,6 +231,10 @@ func (s *StraliasLine) nodeType() string      { return "StraliasLine" }
 func (s *StraliasLine) lineNode()             {}
 func (s *SsaLoadLine) nodeType() string       { return "SsaLoadLine" }
 func (s *SsaLoadLine) lineNode()              {}
+func (s *SeplayLine) nodeType() string        { return "SeplayLine" }
+func (s *SeplayLine) lineNode()               {}
+func (w *WaitOnDLine) nodeType() string       { return "WaitOnDLine" }
+func (w *WaitOnDLine) lineNode()              {}
 
 func (d *DialogueLine) GetVoiceCommands() []*VoiceCommand {
 	var voices []*VoiceCommand

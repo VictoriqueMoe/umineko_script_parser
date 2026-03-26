@@ -407,6 +407,98 @@ func TestParse_SsaLoad(t *testing.T) {
 	}
 }
 
+func TestParse_Seplay(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		wantChannel int
+		wantSeNum   int
+		wantVolume  int
+	}{
+		{
+			name:        "seplay",
+			input:       "seplay 1,47,71",
+			wantChannel: 1,
+			wantSeNum:   47,
+			wantVolume:  71,
+		},
+		{
+			name:        "meplay",
+			input:       "meplay 2,5,40",
+			wantChannel: 2,
+			wantSeNum:   5,
+			wantVolume:  40,
+		},
+		{
+			name:        "seplay high SE number",
+			input:       "seplay 9,1060,71",
+			wantChannel: 9,
+			wantSeNum:   1060,
+			wantVolume:  71,
+		},
+		{
+			name:        "seplay full volume",
+			input:       "seplay 1,28,100",
+			wantChannel: 1,
+			wantSeNum:   28,
+			wantVolume:  100,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			script := Parse(tt.input)
+			if len(script.Lines) != 1 {
+				t.Fatalf("expected 1 line, got %d", len(script.Lines))
+			}
+
+			se, ok := script.Lines[0].(*ast.SeplayLine)
+			if !ok {
+				t.Fatalf("expected SeplayLine, got %T", script.Lines[0])
+			}
+
+			if se.Channel != tt.wantChannel {
+				t.Errorf("channel: got %d, want %d", se.Channel, tt.wantChannel)
+			}
+			if se.SeNum != tt.wantSeNum {
+				t.Errorf("seNum: got %d, want %d", se.SeNum, tt.wantSeNum)
+			}
+			if se.Volume != tt.wantVolume {
+				t.Errorf("volume: got %d, want %d", se.Volume, tt.wantVolume)
+			}
+		})
+	}
+}
+
+func TestParse_WaitOnD(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		segment int
+	}{
+		{"positive segment", "wait_on_d 0", 0},
+		{"segment 3", "wait_on_d 3", 3},
+		{"negative segment", "wait_on_d -1", -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			script := Parse(tt.input)
+			if len(script.Lines) != 1 {
+				t.Fatalf("expected 1 line, got %d", len(script.Lines))
+			}
+
+			w, ok := script.Lines[0].(*ast.WaitOnDLine)
+			if !ok {
+				t.Fatalf("expected WaitOnDLine, got %T", script.Lines[0])
+			}
+			if w.Segment != tt.segment {
+				t.Errorf("segment: got %d, want %d", w.Segment, tt.segment)
+			}
+		})
+	}
+}
+
 func TestParse_LeadingSpaceAfterQuote(t *testing.T) {
 	input := `d ` + "`\" Everything I speak in red is the truth!\"`"
 	script := Parse(input)

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/VictoriqueMoe/umineko_script_parser/dto"
 	"github.com/VictoriqueMoe/umineko_script_parser/lexer/ast"
 	"github.com/VictoriqueMoe/umineko_script_parser/lexer/transformer"
 )
@@ -15,6 +16,7 @@ type (
 		strAliases       map[string]string
 		subtitleRefs     []SubtitleRef
 		validationErrors []ValidationError
+		seFileMap        map[int]string
 	}
 
 	ExtractedQuote struct {
@@ -26,6 +28,12 @@ type (
 		Episode      int
 		ContentType  string
 		Truth        TruthFlags
+		SoundEffects []pendingSoundEffect
+	}
+
+	pendingSoundEffect struct {
+		seNum     int
+		afterClip int
 	}
 
 	SubtitleRef struct {
@@ -46,6 +54,10 @@ func NewQuoteExtractor() *QuoteExtractor {
 	return &QuoteExtractor{
 		presets: transformer.NewPresetContext(),
 	}
+}
+
+func (e *QuoteExtractor) SetSeFileMap(m map[int]string) {
+	e.seFileMap = m
 }
 
 func (e *QuoteExtractor) ExtractQuotes(input string) []ExtractedQuote {
@@ -75,6 +87,12 @@ func (e *QuoteExtractor) ExtractFromScript(script *ast.Script) []ExtractedQuote 
 	currentEpisode := 0
 	currentContentType := ""
 	var lastVoice *topLevelVoice
+
+	var pendingSEForNext []pendingSoundEffect
+	var postDialogueSEs []pendingSoundEffect
+	inWaitOnDBlock := false
+	currentWaitSegment := -1
+	lastQuoteIdx := -1
 
 	for _, line := range script.Lines {
 		switch l := line.(type) {
@@ -115,16 +133,56 @@ func (e *QuoteExtractor) ExtractFromScript(script *ast.Script) []ExtractedQuote 
 				})
 			}
 
+		case *ast.WaitOnDLine:
+			inWaitOnDBlock = true
+			currentWaitSegment = l.Segment
+
+		case *ast.SeplayLine:
+			if inWaitOnDBlock {
+				postDialogueSEs = append(postDialogueSEs, pendingSoundEffect{
+					seNum:     l.SeNum,
+					afterClip: currentWaitSegment,
+				})
+			} else {
+				pendingSEForNext = append(pendingSEForNext, pendingSoundEffect{
+					seNum:     l.SeNum,
+					afterClip: -1,
+				})
+			}
+
 		case *ast.DialogueLine:
+			if len(postDialogueSEs) > 0 && lastQuoteIdx >= 0 {
+				quotes[lastQuoteIdx].SoundEffects = append(
+					quotes[lastQuoteIdx].SoundEffects,
+					postDialogueSEs...,
+				)
+				postDialogueSEs = nil
+			}
+
 			quote := e.extractFromDialogue(l)
 			if quote != nil {
 				if currentEpisode > 0 {
 					quote.Episode = currentEpisode
 				}
 				quote.ContentType = currentContentType
+				if len(pendingSEForNext) > 0 {
+					quote.SoundEffects = append(quote.SoundEffects, pendingSEForNext...)
+					pendingSEForNext = nil
+				}
 				quotes = append(quotes, *quote)
+				lastQuoteIdx = len(quotes) - 1
 			}
+
+			inWaitOnDBlock = false
+			currentWaitSegment = -1
 		}
+	}
+
+	if len(postDialogueSEs) > 0 && lastQuoteIdx >= 0 {
+		quotes[lastQuoteIdx].SoundEffects = append(
+			quotes[lastQuoteIdx].SoundEffects,
+			postDialogueSEs...,
+		)
 	}
 
 	return quotes
@@ -275,6 +333,35 @@ func containsVoiceCommand(elements []ast.DialogueElement) bool {
 
 func (e *QuoteExtractor) Presets() *transformer.PresetContext {
 	return e.presets
+}
+
+func (e *QuoteExtractor) ResolveSoundEffects(effects []pendingSoundEffect) []dto.SoundEffect {
+	if len(effects) == 0 || len(e.seFileMap) == 0 {
+		return nil
+	}
+
+	type seKey struct {
+		filename  string
+		afterClip int
+	}
+	seen := make(map[seKey]bool)
+	var result []dto.SoundEffect
+	for _, se := range effects {
+		filename, ok := e.seFileMap[se.seNum]
+		if !ok {
+			continue
+		}
+		key := seKey{filename, se.afterClip}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		result = append(result, dto.SoundEffect{
+			Filename:  filename,
+			AfterClip: se.afterClip,
+		})
+	}
+	return result
 }
 
 func (*QuoteExtractor) parseOmakeEpisode(name string) (int, bool) {
