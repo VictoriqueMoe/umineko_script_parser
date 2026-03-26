@@ -49,12 +49,12 @@ d [lv 0*"10"*"10100005"]` + "`\"Text with {p:0:Japanese font preset} here.\"`" +
 		t.Errorf("blue truth should use class: %q", html1)
 	}
 
-	if !strings.Contains(html2, `color:#FFAA00`) {
-		t.Errorf("gold should use parsed colour: %q", html2)
+	if !strings.Contains(html2, `class="gold-truth"`) {
+		t.Errorf("gold should use semantic class: %q", html2)
 	}
 
-	if !strings.Contains(html3, `color:#AA71FF`) {
-		t.Errorf("purple should use parsed colour: %q", html3)
+	if !strings.Contains(html3, `class="purple-truth"`) {
+		t.Errorf("purple should use semantic class: %q", html3)
 	}
 
 	if strings.Contains(html4, "color:") {

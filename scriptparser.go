@@ -111,17 +111,19 @@ func (p *parser) parse(lines []string) []ParsedQuote {
 				}
 
 				quotes[i] = ParsedQuote{
-					Text:         plainText.Transform(eq.Content),
-					TextHtml:     htmlText.Transform(eq.Content),
-					CharacterID:  eq.CharacterID,
-					Character:    character.CharacterNames.GetCharacterName(character.CharacterFromID(eq.CharacterID)),
-					AudioID:      eq.AudioID,
-					AudioCharMap: eq.AudioCharMap,
-					AudioTextMap: audioTextMap,
-					Episode:      eq.Episode,
-					ContentType:  eq.ContentType,
-					HasRedTruth:  eq.Truth.HasRed,
-					HasBlueTruth: eq.Truth.HasBlue,
+					Text:           plainText.Transform(eq.Content),
+					TextHtml:       htmlText.Transform(eq.Content),
+					CharacterID:    eq.CharacterID,
+					Character:      character.CharacterNames.GetCharacterName(character.CharacterFromID(eq.CharacterID)),
+					AudioID:        eq.AudioID,
+					AudioCharMap:   eq.AudioCharMap,
+					AudioTextMap:   audioTextMap,
+					Episode:        eq.Episode,
+					ContentType:    eq.ContentType,
+					HasRedTruth:    eq.Truth.HasRed,
+					HasBlueTruth:   eq.Truth.HasBlue,
+					HasGoldTruth:   eq.Truth.HasGold,
+					HasPurpleTruth: eq.Truth.HasPurple,
 				}
 			}
 		})

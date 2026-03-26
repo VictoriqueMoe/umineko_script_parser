@@ -14,16 +14,15 @@ type PresetContext struct {
 
 func DefaultSemanticPresets() map[string]string {
 	return map[string]string{
-		"1": "red-truth",
-		"2": "blue-truth",
+		"1":  "red-truth",
+		"2":  "blue-truth",
+		"41": "gold-truth",
+		"42": "purple-truth",
 	}
 }
 
 func DefaultDynamicColours() map[string]string {
-	return map[string]string{
-		"41": "#FFAA00",
-		"42": "#AA71FF",
-	}
+	return map[string]string{}
 }
 
 func NewPresetContext() *PresetContext {

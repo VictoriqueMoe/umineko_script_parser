@@ -63,12 +63,12 @@ func TestPresetColoursParsedFromScript(t *testing.T) {
 		t.Errorf("blue truth should use class: %q", quotes[1].TextHtml)
 	}
 
-	if !strings.Contains(quotes[2].TextHtml, `color:#FFAA00`) {
-		t.Errorf("gold should use parsed colour: %q", quotes[2].TextHtml)
+	if !strings.Contains(quotes[2].TextHtml, `class="gold-truth"`) {
+		t.Errorf("gold should use semantic class: %q", quotes[2].TextHtml)
 	}
 
-	if !strings.Contains(quotes[3].TextHtml, `color:#AA71FF`) {
-		t.Errorf("purple should use parsed colour: %q", quotes[3].TextHtml)
+	if !strings.Contains(quotes[3].TextHtml, `class="purple-truth"`) {
+		t.Errorf("purple should use semantic class: %q", quotes[3].TextHtml)
 	}
 
 	if strings.Contains(quotes[4].TextHtml, "color:") {
@@ -682,8 +682,11 @@ func TestParse_PresetGoldText(t *testing.T) {
 	}
 	q := quotes[0]
 
-	if !strings.Contains(q.TextHtml, `<span style="color:#FFAA00">I guarantee that this is the corpse of Ushiromiya Kinzo</span>`) {
-		t.Errorf("HTML should contain gold colour span: %q", q.TextHtml)
+	if !strings.Contains(q.TextHtml, `<span class="gold-truth">I guarantee that this is the corpse of Ushiromiya Kinzo</span>`) {
+		t.Errorf("HTML should contain gold-truth class span: %q", q.TextHtml)
+	}
+	if !q.HasGoldTruth {
+		t.Errorf("HasGoldTruth should be true")
 	}
 	if !strings.Contains(q.Text, "I guarantee that this is the corpse of Ushiromiya Kinzo") {
 		t.Errorf("plain text should contain gold text content: %q", q.Text)
@@ -707,8 +710,11 @@ func TestParse_PresetPurpleText(t *testing.T) {
 	}
 	q := quotes[0]
 
-	if !strings.Contains(q.TextHtml, `<span style="color:#AA71FF">The dining hall was locked up</span>`) {
-		t.Errorf("HTML should contain purple colour span: %q", q.TextHtml)
+	if !strings.Contains(q.TextHtml, `<span class="purple-truth">The dining hall was locked up</span>`) {
+		t.Errorf("HTML should contain purple-truth class span: %q", q.TextHtml)
+	}
+	if !q.HasPurpleTruth {
+		t.Errorf("HasPurpleTruth should be true")
 	}
 	if !strings.Contains(q.Text, "The dining hall was locked up") {
 		t.Errorf("plain text should contain purple text content: %q", q.Text)
