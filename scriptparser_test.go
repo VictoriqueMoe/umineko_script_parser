@@ -1589,6 +1589,77 @@ func TestParse_ValidationErrors_NoErrorsForValidInput(t *testing.T) {
 	}
 }
 
+func TestParse_SoundEffectsEndToEnd(t *testing.T) {
+	script := `if %Se_Number = 47 mov $Se_Play,"sound\se\umise_047.ogg" : return
+if %Se_Number = 48 mov $Se_Play,"sound\se\umise_048.ogg" : return
+if %Me_Number = 5 mov $Me_Play,"sound\se\umilse_005.ogg" : return
+new_episode 1
+seplay 1,47,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]
+meplay 2,5,40
+d [lv 0*"10"*"10100002"]` + "`\"Background noise.\"`" + `[\]
+d [lv 0*"10"*"10100003"]` + "`\"No SE here.\"`" + `[\]`
+
+	quotes := Parse(script)
+
+	if len(quotes) != 3 {
+		t.Fatalf("expected 3 quotes, got %d", len(quotes))
+	}
+
+	if len(quotes[0].SoundEffects) != 1 {
+		t.Fatalf("quote 0: expected 1 SE, got %d", len(quotes[0].SoundEffects))
+	}
+	if quotes[0].SoundEffects[0].Filename != "umise_047" {
+		t.Errorf("quote 0 SE: got %q, want %q", quotes[0].SoundEffects[0].Filename, "umise_047")
+	}
+	if quotes[0].SoundEffects[0].AfterClip != -1 {
+		t.Errorf("quote 0 afterClip: got %d, want -1", quotes[0].SoundEffects[0].AfterClip)
+	}
+
+	if len(quotes[1].SoundEffects) != 1 {
+		t.Fatalf("quote 1: expected 1 SE, got %d", len(quotes[1].SoundEffects))
+	}
+	if quotes[1].SoundEffects[0].Filename != "umilse_005" {
+		t.Errorf("quote 1 SE: got %q, want %q", quotes[1].SoundEffects[0].Filename, "umilse_005")
+	}
+
+	if len(quotes[2].SoundEffects) != 0 {
+		t.Errorf("quote 2: expected 0 SE, got %d", len(quotes[2].SoundEffects))
+	}
+}
+
+func TestParse_SoundEffectsPatternB_EndToEnd(t *testing.T) {
+	script := `if %Se_Number = 13 mov $Se_Play,"sound\se\umise_013.ogg" : return
+if %Se_Number = 3 mov $Se_Play,"sound\se\umise_003.ogg" : return
+new_episode 1
+d2 [lv 0*"07"*"10300141"]` + "`\"Wait!`[@][lv 0*\"07\"*\"10300142\"]` Stop!\"`" + `[\]
+wait_on_d 0
+seplay 1,13,71
+wait_on_d 1
+seplay 1,3,71
+d [lv 0*"10"*"10100001"]` + "`\"Next line.\"`" + `[\]`
+
+	quotes := Parse(script)
+
+	if len(quotes) != 2 {
+		t.Fatalf("expected 2 quotes, got %d", len(quotes))
+	}
+
+	if len(quotes[0].SoundEffects) != 2 {
+		t.Fatalf("quote 0: expected 2 SEs, got %d", len(quotes[0].SoundEffects))
+	}
+	if quotes[0].SoundEffects[0].Filename != "umise_013" || quotes[0].SoundEffects[0].AfterClip != 0 {
+		t.Errorf("SE[0]: got {%q, %d}, want {%q, 0}", quotes[0].SoundEffects[0].Filename, quotes[0].SoundEffects[0].AfterClip, "umise_013")
+	}
+	if quotes[0].SoundEffects[1].Filename != "umise_003" || quotes[0].SoundEffects[1].AfterClip != 1 {
+		t.Errorf("SE[1]: got {%q, %d}, want {%q, 1}", quotes[0].SoundEffects[1].Filename, quotes[0].SoundEffects[1].AfterClip, "umise_003")
+	}
+
+	if len(quotes[1].SoundEffects) != 0 {
+		t.Errorf("quote 1: expected 0 SE, got %d", len(quotes[1].SoundEffects))
+	}
+}
+
 func TestParse_ValidationErrors_VoiceMissingFields(t *testing.T) {
 	p := newParser()
 

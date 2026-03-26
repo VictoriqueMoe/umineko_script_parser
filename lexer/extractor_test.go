@@ -925,6 +925,155 @@ func TestExtractQuotes_ValidationErrors(t *testing.T) {
 	}
 }
 
+func TestExtractQuotes_SoundEffects_PatternA(t *testing.T) {
+	input := `new_episode 1
+seplay 1,47,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{47: "umise_047"})
+	quotes := extractor.ExtractQuotes(input)
+
+	if len(quotes) != 1 {
+		t.Fatalf("expected 1 quote, got %d", len(quotes))
+	}
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 1 {
+		t.Fatalf("expected 1 sound effect, got %d", len(resolved))
+	}
+	if resolved[0].Filename != "umise_047" {
+		t.Errorf("filename: got %q, want %q", resolved[0].Filename, "umise_047")
+	}
+	if resolved[0].AfterClip != -1 {
+		t.Errorf("afterClip: got %d, want -1", resolved[0].AfterClip)
+	}
+}
+
+func TestExtractQuotes_MultipleSoundEffects_PatternA(t *testing.T) {
+	input := `new_episode 1
+seplay 1,47,71
+seplay 1,48,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{47: "umise_047", 48: "umise_048"})
+	quotes := extractor.ExtractQuotes(input)
+
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 2 {
+		t.Fatalf("expected 2 sound effects, got %d", len(resolved))
+	}
+	if resolved[0].Filename != "umise_047" {
+		t.Errorf("SE[0]: got %q, want %q", resolved[0].Filename, "umise_047")
+	}
+	if resolved[1].Filename != "umise_048" {
+		t.Errorf("SE[1]: got %q, want %q", resolved[1].Filename, "umise_048")
+	}
+}
+
+func TestExtractQuotes_SoundEffectDeduplication(t *testing.T) {
+	input := `new_episode 1
+seplay 1,47,71
+seplay 2,47,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{47: "umise_047"})
+	quotes := extractor.ExtractQuotes(input)
+
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 1 {
+		t.Fatalf("expected 1 deduplicated sound effect, got %d", len(resolved))
+	}
+}
+
+func TestExtractQuotes_SoundEffectUnresolved(t *testing.T) {
+	input := `new_episode 1
+seplay 1,9999,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{47: "umise_047"})
+	quotes := extractor.ExtractQuotes(input)
+
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 0 {
+		t.Fatalf("expected 0 sound effects for unresolved SE, got %d", len(resolved))
+	}
+}
+
+func TestExtractQuotes_SoundEffectAssociatedWithNextDialogue(t *testing.T) {
+	input := `new_episode 1
+d [lv 0*"10"*"10100001"]` + "`\"First line.\"`" + `[\]
+seplay 1,47,71
+d [lv 0*"10"*"10100002"]` + "`\"Second line.\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{47: "umise_047"})
+	quotes := extractor.ExtractQuotes(input)
+
+	if len(quotes) != 2 {
+		t.Fatalf("expected 2 quotes, got %d", len(quotes))
+	}
+	if len(quotes[0].SoundEffects) != 0 {
+		t.Errorf("first quote should have no SE, got %d", len(quotes[0].SoundEffects))
+	}
+	resolved := extractor.ResolveSoundEffects(quotes[1].SoundEffects)
+	if len(resolved) != 1 {
+		t.Fatalf("second quote should have 1 SE, got %d", len(resolved))
+	}
+	if resolved[0].AfterClip != -1 {
+		t.Errorf("afterClip: got %d, want -1", resolved[0].AfterClip)
+	}
+}
+
+func TestExtractQuotes_NoSoundEffectsWithoutMap(t *testing.T) {
+	input := `new_episode 1
+seplay 1,47,71
+d [lv 0*"10"*"10100001"]` + "`\"Ow!\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	quotes := extractor.ExtractQuotes(input)
+
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 0 {
+		t.Fatalf("expected 0 sound effects without SE map, got %d", len(resolved))
+	}
+}
+
+func TestExtractQuotes_SoundEffects_PatternB_WaitOnD(t *testing.T) {
+	input := `new_episode 1
+d2 [lv 0*"07"*"10300141"]` + "`\"Wait!`[@][lv 0*\"07\"*\"10300142\"]` Stop!\"`" + `[\]
+wait_on_d 0
+seplay 1,13,71
+wait_on_d 1
+seplay 1,3,71
+d [lv 0*"10"*"10100001"]` + "`\"Next line.\"`" + `[\]`
+
+	extractor := NewQuoteExtractor()
+	extractor.SetSeFileMap(map[int]string{13: "umise_013", 3: "umise_003"})
+	quotes := extractor.ExtractQuotes(input)
+
+	if len(quotes) != 2 {
+		t.Fatalf("expected 2 quotes, got %d", len(quotes))
+	}
+
+	resolved := extractor.ResolveSoundEffects(quotes[0].SoundEffects)
+	if len(resolved) != 2 {
+		t.Fatalf("first quote should have 2 SEs, got %d", len(resolved))
+	}
+	if resolved[0].Filename != "umise_013" || resolved[0].AfterClip != 0 {
+		t.Errorf("SE[0]: got {%q, %d}, want {%q, 0}", resolved[0].Filename, resolved[0].AfterClip, "umise_013")
+	}
+	if resolved[1].Filename != "umise_003" || resolved[1].AfterClip != 1 {
+		t.Errorf("SE[1]: got {%q, %d}, want {%q, 1}", resolved[1].Filename, resolved[1].AfterClip, "umise_003")
+	}
+
+	if len(quotes[1].SoundEffects) != 0 {
+		t.Errorf("second quote should have no SE, got %d", len(quotes[1].SoundEffects))
+	}
+}
+
 func TestExtractQuotes_ValidationNonFatal(t *testing.T) {
 	input := `d [lv 0*"10"*"10100001"]` + "`\"{unknown_tag:content} Normal text.\"`" + `[\]`
 

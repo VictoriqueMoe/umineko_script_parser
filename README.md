@@ -1,6 +1,6 @@
 # umineko_script_parser
 
-A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game script files. Extracts structured dialogue quotes with character attribution, episode metadata, voice audio references, red/blue truth detection, and both plain text and HTML output.
+A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game script files. Extracts structured dialogue quotes with character attribution, episode metadata, voice audio references, sound effect associations, red/blue/gold/purple truth detection, and both plain text and HTML output.
 
 ## Architecture
 
@@ -54,7 +54,8 @@ A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game sc
 │      CharacterID: "27"                                                      │
 │      AudioID:     "10100001"                                                │
 │      Episode:     1                                                         │
-│      Truth:       { HasRed: true, HasBlue: false }                          │
+│      Truth:       { HasRed: true, HasBlue: false, ... }                     │
+│      SoundEffects: [{ SeNum: 47, AfterClip: 0 }, ...]                      │
 │  }                                                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
@@ -71,7 +72,8 @@ A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game sc
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         ParsedQuote (dto/)                                  │
 │                                                                             │
-│  { Text, TextHtml, CharacterID, Character, AudioID, Episode, ... }         │
+│  { Text, TextHtml, CharacterID, Character, AudioID, Episode,               │
+│    SoundEffects, HasRedTruth, HasGoldTruth, ... }                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -149,8 +151,13 @@ Each parsed quote contains:
 | `AudioTextMap` | `map[string]string` | Audio ID to spoken text fragment (multi-audio quotes only)                                 |
 | `Episode`      | `int`               | Episode number (1-8)                                                                       |
 | `ContentType`  | `string`            | `""` (main story), `"tea"`, `"ura"`, or `"omake"`                                          |
-| `HasRedTruth`  | `bool`              | Contains red truth                                                                         |
-| `HasBlueTruth` | `bool`              | Contains blue truth                                                                        |
+| `HasRedTruth`    | `bool`              | Contains red truth                                                                       |
+| `HasBlueTruth`   | `bool`              | Contains blue truth                                                                      |
+| `HasGoldTruth`   | `bool`              | Contains gold truth                                                                      |
+| `HasPurpleTruth` | `bool`              | Contains purple statements                                                               |
+| `SoundEffects`   | `[]SoundEffect`     | Associated sound effects with timing (`Filename`, `AfterClip`)                           |
+
+`SoundEffect` has two fields: `Filename` (e.g. `"umise_047"`) and `AfterClip` (voice clip index the SE plays after, or `-1` for before all clips).
 
 ## HTML Output
 

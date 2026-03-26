@@ -46,10 +46,18 @@ func newParser() *parser {
 
 func (p *parser) parse(lines []string) []ParsedQuote {
 	filtered := make([]string, 0, len(lines)/8)
+	seFileMap := make(map[int]string)
+
 	for _, line := range lines {
 		if len(line) < 2 {
 			continue
 		}
+
+		if seNum, filename, ok := lexer.ParseSeDispatchLine(line); ok {
+			seFileMap[seNum] = filename
+			continue
+		}
+
 		switch line[0] {
 		case 'd':
 			if line[1] == ' ' || (line[1] == '2' && len(line) > 2 && line[2] == ' ') {
@@ -70,13 +78,25 @@ func (p *parser) parse(lines []string) []ParsedQuote {
 				filtered = append(filtered, line)
 			} else if len(line) > 8 && line[:8] == "ssa_load" {
 				filtered = append(filtered, line)
+			} else if len(line) > 6 && line[:6] == "seplay" {
+				filtered = append(filtered, line)
 			}
 		case 'l':
 			if len(line) > 2 && line[:2] == "lv" && line[2] == ' ' {
 				filtered = append(filtered, line)
 			}
+		case 'm':
+			if len(line) > 6 && line[:6] == "meplay" {
+				filtered = append(filtered, line)
+			}
+		case 'w':
+			if len(line) > 9 && line[:9] == "wait_on_d" {
+				filtered = append(filtered, line)
+			}
 		}
 	}
+
+	p.extractor.SetSeFileMap(seFileMap)
 
 	input := strings.Join(filtered, "\n")
 	extracted := p.extractor.ExtractQuotes(input)
@@ -124,6 +144,7 @@ func (p *parser) parse(lines []string) []ParsedQuote {
 					HasBlueTruth:   eq.Truth.HasBlue,
 					HasGoldTruth:   eq.Truth.HasGold,
 					HasPurpleTruth: eq.Truth.HasPurple,
+					SoundEffects:   p.extractor.ResolveSoundEffects(eq.SoundEffects),
 				}
 			}
 		})
