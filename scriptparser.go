@@ -11,6 +11,7 @@ import (
 	"github.com/VictoriqueMoe/umineko_script_parser/lexer/transformer"
 	"github.com/VictoriqueMoe/umineko_script_parser/quote/character"
 	"github.com/VictoriqueMoe/umineko_script_parser/quote/loader"
+	"github.com/VictoriqueMoe/umineko_script_parser/quote/mutation"
 )
 
 type (
@@ -19,10 +20,11 @@ type (
 	parser struct {
 		extractor *lexer.QuoteExtractor
 		factory   *transformer.Factory
+		mutations mutation.Pipeline
 	}
 )
 
-func Parse(script string) []ParsedQuote {
+func Parse(script string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
 	p := newParser()
 	return p.parse(strings.Split(script, "\n"))
 }
@@ -30,8 +32,7 @@ func Parse(script string) []ParsedQuote {
 func NewLoader(efs fs.ReadFileFS) *loader.Loader {
 	return loader.New(efs, func(lines []string) ([]dto.ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
 		p := newParser()
-		quotes := p.parse(lines)
-		return quotes, p.extractor.SubtitleRefs(), p.extractor.ValidationErrors()
+		return p.parse(lines)
 	})
 }
 
@@ -41,10 +42,11 @@ func newParser() *parser {
 	return &parser{
 		extractor: extractor,
 		factory:   transformer.NewFactory(extractor.Presets()),
+		mutations: *mutation.NewPipeline(),
 	}
 }
 
-func (p *parser) parse(lines []string) []ParsedQuote {
+func (p *parser) parse(lines []string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
 	filtered := make([]string, 0, len(lines)/8)
 	seFileMap := make(map[int]string)
 
@@ -151,5 +153,7 @@ func (p *parser) parse(lines []string) []ParsedQuote {
 	}
 	wg.Wait()
 
-	return quotes
+	quotes = p.mutations.Apply(quotes)
+
+	return quotes, p.extractor.SubtitleRefs(), p.extractor.ValidationErrors()
 }
