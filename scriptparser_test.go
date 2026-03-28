@@ -1596,7 +1596,7 @@ meplay 2,5,40
 d [lv 0*"10"*"10100002"]` + "`\"Background noise.\"`" + `[\]
 d [lv 0*"10"*"10100003"]` + "`\"No SE here.\"`" + `[\]`
 
-	quotes, _, _ := Parse(script)
+	quotes, _, _ := ParseScriptText(script)
 
 	if len(quotes) != 3 {
 		t.Fatalf("expected 3 quotes, got %d", len(quotes))
@@ -1635,7 +1635,7 @@ wait_on_d 1
 seplay 1,3,71
 d [lv 0*"10"*"10100001"]` + "`\"Next line.\"`" + `[\]`
 
-	quotes, _, _ := Parse(script)
+	quotes, _, _ := ParseScriptText(script)
 
 	if len(quotes) != 2 {
 		t.Fatalf("expected 2 quotes, got %d", len(quotes))
@@ -1681,7 +1681,7 @@ func TestParse_AppliesMutations(t *testing.T) {
 	script := "new_episode 2\n" +
 		`d [lv 0*"46"*"20600528"]` + "`\"This is actually Kanon.\"`" + `[\]`
 
-	quotes, _, _ := Parse(script)
+	quotes, _, _ := ParseScriptText(script)
 
 	if len(quotes) != 1 {
 		t.Fatalf("expected 1 quote, got %d", len(quotes))
@@ -1697,7 +1697,7 @@ func TestParse_ReturnsValidationErrors(t *testing.T) {
 	script := "new_episode 1\n" +
 		`d [lv 0*"10"*"10100001"]` + "`\"{bogus:broken tag}\"`" + `[\]`
 
-	_, _, validationErrors := Parse(script)
+	_, _, validationErrors := ParseScriptText(script)
 
 	found := false
 	for _, err := range validationErrors {

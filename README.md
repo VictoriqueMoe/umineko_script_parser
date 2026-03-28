@@ -77,7 +77,7 @@ A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game sc
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-When using `NewLoader`, the decoder stage runs before the pipeline above:
+`ParseFile` handles the decoding step before the pipeline above:
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────────┐
@@ -86,7 +86,7 @@ When using `NewLoader`, the decoder stage runs before the pipeline above:
 └──────────────┘    └──────────────┘    └──────────────────────────────────┘
 ```
 
-The loader only decodes the file and passes the result to `Parse`. Subtitle refs (pointers to `.ass` files found in the script) are returned alongside quotes for the caller to resolve.
+Subtitle refs (pointers to `.ass` files found in the script) are returned alongside quotes for the caller to resolve.
 
 ## Installation
 
@@ -98,27 +98,30 @@ go get github.com/VictoriqueMoe/umineko_script_parser
 
 ### From encrypted `.file` files
 
-`NewLoader` reads an ONS2-encrypted `.file` from the provided filesystem, decodes it (two-pass XOR + zlib), and parses the script into structured quotes. It also returns any subtitle references found in the script for the caller to resolve.
+`ParseFile` takes an `io.Reader` for an ONS2-encrypted `.file`, decodes it (two-pass XOR + zlib), and parses the script into structured quotes.
 
 ```go
 package main
 
 import (
-    "embed"
     "fmt"
+    "os"
 
     scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 )
 
-//go:embed data/*.file
-var dataFS embed.FS
-
 func main() {
-    loader := scriptparser.NewLoader(dataFS)
-    quotes, subtitleRefs, validationErrors := loader.Load("en", "data/en.file")
+    f, err := os.Open("en.file")
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
 
-    // subtitleRefs contains pointers to .ass subtitle files
-    // referenced in the script; resolve them as needed
+    quotes, subtitleRefs, validationErrors, err := scriptparser.ParseFile(f)
+    if err != nil {
+        panic(err)
+    }
+
     _ = subtitleRefs
     _ = validationErrors
 
@@ -130,10 +133,10 @@ func main() {
 
 ### From decoded script text
 
-If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly. It applies the same pipeline as the loader (including mutations and validation):
+If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly:
 
 ```go
-quotes, subtitleRefs, validationErrors := scriptparser.Parse(rawScriptText)
+quotes, subtitleRefs, validationErrors := scriptparser.ParseScriptText(rawScriptText)
 ```
 
 ## ParsedQuote
@@ -183,7 +186,6 @@ For advanced usage, the internals are fully exported:
 | `lexer/transformer` | Plain text and HTML transformers, preset context                     |
 | `decoder`           | ONS2 format decryption (two-pass XOR + zlib)                         |
 | `quote/character`   | 61 character constants with ID and name mappings                     |
-| `quote/loader`      | File loading (ONS2 decode + parse)                                   |
 | `quote/mutation`    | Post-parse correction engine (e.g. Kanon attribution fix)            |
 | `dto`               | `ParsedQuote` type definition                                        |
 
