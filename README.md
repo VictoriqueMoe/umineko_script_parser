@@ -77,21 +77,16 @@ A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game sc
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-When using `NewLoader`, two additional stages run before the pipeline above:
+When using `NewLoader`, the decoder stage runs before the pipeline above:
 
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  ONS2 .file  │───►│   Decoder    │───►│  Parse (above│───►│   Mutation   │
-│  (encrypted) │    │  (decoder/)  │    │   pipeline)  │    │   Pipeline   │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-                                              │
-                                     ┌────────┴────────┐
-                                     │  Subtitle Refs   │
-                                     │  (.ass files)    │
-                                     │  resolved by     │
-                                     │  loader          │
-                                     └─────────────────┘
+┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────────┐
+│  ONS2 .file  │───►│   Decoder    │───►│  Parse (pipeline above)          │
+│  (encrypted) │    │  (decoder/)  │    │  returns quotes + subtitle refs  │
+└──────────────┘    └──────────────┘    └──────────────────────────────────┘
 ```
+
+The loader only decodes the file and passes the result to `Parse`. Subtitle refs (pointers to `.ass` files found in the script) are returned alongside quotes for the caller to resolve.
 
 ## Installation
 
@@ -103,7 +98,7 @@ go get github.com/VictoriqueMoe/umineko_script_parser
 
 ### From encrypted `.file` files
 
-`NewLoader` handles the full pipeline: reads an ONS2-encrypted `.file` from the provided filesystem, decodes it (two-pass XOR + zlib), parses the script into structured quotes, resolves any ASS subtitle references, and applies post-parse corrections.
+`NewLoader` reads an ONS2-encrypted `.file` from the provided filesystem, decodes it (two-pass XOR + zlib), and parses the script into structured quotes. It also returns any subtitle references found in the script for the caller to resolve.
 
 ```go
 package main
@@ -115,12 +110,17 @@ import (
     scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 )
 
-//go:embed data/*.file data/sub/*.ass
+//go:embed data/*.file
 var dataFS embed.FS
 
 func main() {
     loader := scriptparser.NewLoader(dataFS)
-    quotes := loader.Load("en", "data/en.file")
+    quotes, subtitleRefs, validationErrors := loader.Load("en", "data/en.file")
+
+    // subtitleRefs contains pointers to .ass subtitle files
+    // referenced in the script; resolve them as needed
+    _ = subtitleRefs
+    _ = validationErrors
 
     for _, q := range quotes {
         fmt.Printf("[EP%d] %s: %s\n", q.Episode, q.Character, q.Text)
@@ -130,10 +130,10 @@ func main() {
 
 ### From decoded script text
 
-If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly:
+If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly. It applies the same pipeline as the loader (including mutations and validation):
 
 ```go
-quotes := scriptparser.Parse(rawScriptText)
+quotes, subtitleRefs, validationErrors := scriptparser.Parse(rawScriptText)
 ```
 
 ## ParsedQuote
@@ -183,9 +183,8 @@ For advanced usage, the internals are fully exported:
 | `lexer/transformer` | Plain text and HTML transformers, preset context                     |
 | `decoder`           | ONS2 format decryption (two-pass XOR + zlib)                         |
 | `quote/character`   | 61 character constants with ID and name mappings                     |
-| `quote/loader`      | File loading with subtitle resolution and mutation pipeline          |
+| `quote/loader`      | File loading (ONS2 decode + parse)                                   |
 | `quote/mutation`    | Post-parse correction engine (e.g. Kanon attribution fix)            |
-| `subtitle`          | ASS subtitle format parser                                           |
 | `dto`               | `ParsedQuote` type definition                                        |
 
 ### Working with the AST directly
