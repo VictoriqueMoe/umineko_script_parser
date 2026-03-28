@@ -1,16 +1,17 @@
 package scriptparser
 
 import (
-	"io/fs"
+	"fmt"
+	"io"
 	"runtime"
 	"strings"
 	"sync"
 
+	"github.com/VictoriqueMoe/umineko_script_parser/decoder"
 	"github.com/VictoriqueMoe/umineko_script_parser/dto"
 	"github.com/VictoriqueMoe/umineko_script_parser/lexer"
 	"github.com/VictoriqueMoe/umineko_script_parser/lexer/transformer"
 	"github.com/VictoriqueMoe/umineko_script_parser/quote/character"
-	"github.com/VictoriqueMoe/umineko_script_parser/quote/loader"
 	"github.com/VictoriqueMoe/umineko_script_parser/quote/mutation"
 )
 
@@ -24,16 +25,29 @@ type (
 	}
 )
 
-func Parse(script string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
+func ParseScriptText(script string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError, error) {
+	if strings.ContainsRune(script, 0) {
+		return nil, nil, nil, ErrBinaryInput
+	}
 	p := newParser()
-	return p.parse(strings.Split(script, "\n"))
+	quotes, refs, validationErrors := p.parse(strings.Split(script, "\n"))
+	return quotes, refs, validationErrors, nil
 }
 
-func NewLoader(efs fs.ReadFileFS) *loader.Loader {
-	return loader.New(efs, func(lines []string) ([]dto.ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
-		p := newParser()
-		return p.parse(lines)
-	})
+func ParseFile(r io.Reader) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError, error) {
+	raw, err := io.ReadAll(r)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("read: %w", err)
+	}
+	decoded, err := decoder.Decode(raw)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("decode: %w", err)
+	}
+	quotes, refs, validationErrors, err := ParseScriptText(string(decoded))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return quotes, refs, validationErrors, nil
 }
 
 func newParser() *parser {

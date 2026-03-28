@@ -77,7 +77,7 @@ A Go library for parsing Umineko no Naku Koro ni (When the Seagulls Cry) game sc
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-When using `NewLoader`, the decoder stage runs before the pipeline above:
+`ParseFile` handles the decoding step before the pipeline above:
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────────┐
@@ -86,7 +86,7 @@ When using `NewLoader`, the decoder stage runs before the pipeline above:
 └──────────────┘    └──────────────┘    └──────────────────────────────────┘
 ```
 
-The loader only decodes the file and passes the result to `Parse`. Subtitle refs (pointers to `.ass` files found in the script) are returned alongside quotes for the caller to resolve.
+Subtitle refs (pointers to `.ass` files found in the script) are returned alongside quotes for the caller to resolve.
 
 ## Installation
 
@@ -98,27 +98,30 @@ go get github.com/VictoriqueMoe/umineko_script_parser
 
 ### From encrypted `.file` files
 
-`NewLoader` reads an ONS2-encrypted `.file` from the provided filesystem, decodes it (two-pass XOR + zlib), and parses the script into structured quotes. It also returns any subtitle references found in the script for the caller to resolve.
+`ParseFile` takes an `io.Reader` for an ONS2-encrypted `.file`, decodes it (two-pass XOR + zlib), and parses the script into structured quotes.
 
 ```go
 package main
 
 import (
-    "embed"
     "fmt"
+    "os"
 
     scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 )
 
-//go:embed data/*.file
-var dataFS embed.FS
-
 func main() {
-    loader := scriptparser.NewLoader(dataFS)
-    quotes, subtitleRefs, validationErrors := loader.Load("en", "data/en.file")
+    f, err := os.Open("en.file")
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
 
-    // subtitleRefs contains pointers to .ass subtitle files
-    // referenced in the script; resolve them as needed
+    quotes, subtitleRefs, validationErrors, err := scriptparser.ParseFile(f)
+    if err != nil {
+        panic(err)
+    }
+
     _ = subtitleRefs
     _ = validationErrors
 
@@ -130,32 +133,35 @@ func main() {
 
 ### From decoded script text
 
-If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly. It applies the same pipeline as the loader (including mutations and validation):
+If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly:
 
 ```go
-quotes, subtitleRefs, validationErrors := scriptparser.Parse(rawScriptText)
+quotes, subtitleRefs, validationErrors, err := scriptparser.ParseScriptText(rawScriptText)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 ## ParsedQuote
 
 Each parsed quote contains:
 
-| Field          | Type                | Description                                                                                |
-|----------------|---------------------|--------------------------------------------------------------------------------------------|
-| `Text`         | `string`            | Plain text content                                                                         |
-| `TextHtml`     | `string`            | HTML with semantic markup (red/blue truth classes, ruby annotations, italic, colour spans) |
-| `CharacterID`  | `string`            | Numeric character ID (e.g. `"10"` for Battler) or `"narrator"`                             |
-| `Character`    | `string`            | Display name (e.g. `"Ushiromiya Battler"`)                                                 |
-| `AudioID`      | `string`            | Comma-separated voice file IDs                                                             |
-| `AudioCharMap` | `map[string]string` | Audio ID to character ID mapping (multi-character quotes only)                             |
-| `AudioTextMap` | `map[string]string` | Audio ID to spoken text fragment (multi-audio quotes only)                                 |
-| `Episode`      | `int`               | Episode number (1-8)                                                                       |
-| `ContentType`  | `string`            | `""` (main story), `"tea"`, `"ura"`, or `"omake"`                                          |
-| `HasRedTruth`    | `bool`              | Contains red truth                                                                       |
-| `HasBlueTruth`   | `bool`              | Contains blue truth                                                                      |
-| `HasGoldTruth`   | `bool`              | Contains gold truth                                                                      |
-| `HasPurpleTruth` | `bool`              | Contains purple statements                                                               |
-| `SoundEffects`   | `[]SoundEffect`     | Associated sound effects with timing (`Filename`, `AfterClip`)                           |
+| Field            | Type                | Description                                                                                |
+|------------------|---------------------|--------------------------------------------------------------------------------------------|
+| `Text`           | `string`            | Plain text content                                                                         |
+| `TextHtml`       | `string`            | HTML with semantic markup (red/blue truth classes, ruby annotations, italic, colour spans) |
+| `CharacterID`    | `string`            | Numeric character ID (e.g. `"10"` for Battler) or `"narrator"`                             |
+| `Character`      | `string`            | Display name (e.g. `"Ushiromiya Battler"`)                                                 |
+| `AudioID`        | `string`            | Comma-separated voice file IDs                                                             |
+| `AudioCharMap`   | `map[string]string` | Audio ID to character ID mapping (multi-character quotes only)                             |
+| `AudioTextMap`   | `map[string]string` | Audio ID to spoken text fragment (multi-audio quotes only)                                 |
+| `Episode`        | `int`               | Episode number (1-8)                                                                       |
+| `ContentType`    | `string`            | `""` (main story), `"tea"`, `"ura"`, or `"omake"`                                          |
+| `HasRedTruth`    | `bool`              | Contains red truth                                                                         |
+| `HasBlueTruth`   | `bool`              | Contains blue truth                                                                        |
+| `HasGoldTruth`   | `bool`              | Contains gold truth                                                                        |
+| `HasPurpleTruth` | `bool`              | Contains purple statements                                                                 |
+| `SoundEffects`   | `[]SoundEffect`     | Associated sound effects with timing (`Filename`, `AfterClip`)                             |
 
 `SoundEffect` has two fields: `Filename` (e.g. `"umise_047"`) and `AfterClip` (voice clip index the SE plays after, or `-1` for before all clips).
 
@@ -183,7 +189,6 @@ For advanced usage, the internals are fully exported:
 | `lexer/transformer` | Plain text and HTML transformers, preset context                     |
 | `decoder`           | ONS2 format decryption (two-pass XOR + zlib)                         |
 | `quote/character`   | 61 character constants with ID and name mappings                     |
-| `quote/loader`      | File loading (ONS2 decode + parse)                                   |
 | `quote/mutation`    | Post-parse correction engine (e.g. Kanon attribution fix)            |
 | `dto`               | `ParsedQuote` type definition                                        |
 
