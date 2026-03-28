@@ -25,9 +25,13 @@ type (
 	}
 )
 
-func ParseScriptText(script string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError) {
+func ParseScriptText(script string) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError, error) {
+	if strings.ContainsRune(script, 0) {
+		return nil, nil, nil, ErrBinaryInput
+	}
 	p := newParser()
-	return p.parse(strings.Split(script, "\n"))
+	quotes, refs, validationErrors := p.parse(strings.Split(script, "\n"))
+	return quotes, refs, validationErrors, nil
 }
 
 func ParseFile(r io.Reader) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.ValidationError, error) {
@@ -39,7 +43,10 @@ func ParseFile(r io.Reader) ([]ParsedQuote, []lexer.SubtitleRef, []lexer.Validat
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("decode: %w", err)
 	}
-	quotes, refs, validationErrors := ParseScriptText(string(decoded))
+	quotes, refs, validationErrors, err := ParseScriptText(string(decoded))
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	return quotes, refs, validationErrors, nil
 }
 

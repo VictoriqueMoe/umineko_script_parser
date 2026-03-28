@@ -136,7 +136,10 @@ func main() {
 If you already have the raw script text (e.g. you decoded it yourself or are working with plain text exports), use `Parse` directly:
 
 ```go
-quotes, subtitleRefs, validationErrors := scriptparser.ParseScriptText(rawScriptText)
+quotes, subtitleRefs, validationErrors, err := scriptparser.ParseScriptText(rawScriptText)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 ## ParsedQuote
