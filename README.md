@@ -143,22 +143,22 @@ quotes, subtitleRefs, validationErrors := scriptparser.ParseScriptText(rawScript
 
 Each parsed quote contains:
 
-| Field          | Type                | Description                                                                                |
-|----------------|---------------------|--------------------------------------------------------------------------------------------|
-| `Text`         | `string`            | Plain text content                                                                         |
-| `TextHtml`     | `string`            | HTML with semantic markup (red/blue truth classes, ruby annotations, italic, colour spans) |
-| `CharacterID`  | `string`            | Numeric character ID (e.g. `"10"` for Battler) or `"narrator"`                             |
-| `Character`    | `string`            | Display name (e.g. `"Ushiromiya Battler"`)                                                 |
-| `AudioID`      | `string`            | Comma-separated voice file IDs                                                             |
-| `AudioCharMap` | `map[string]string` | Audio ID to character ID mapping (multi-character quotes only)                             |
-| `AudioTextMap` | `map[string]string` | Audio ID to spoken text fragment (multi-audio quotes only)                                 |
-| `Episode`      | `int`               | Episode number (1-8)                                                                       |
-| `ContentType`  | `string`            | `""` (main story), `"tea"`, `"ura"`, or `"omake"`                                          |
-| `HasRedTruth`    | `bool`              | Contains red truth                                                                       |
-| `HasBlueTruth`   | `bool`              | Contains blue truth                                                                      |
-| `HasGoldTruth`   | `bool`              | Contains gold truth                                                                      |
-| `HasPurpleTruth` | `bool`              | Contains purple statements                                                               |
-| `SoundEffects`   | `[]SoundEffect`     | Associated sound effects with timing (`Filename`, `AfterClip`)                           |
+| Field            | Type                | Description                                                                                |
+|------------------|---------------------|--------------------------------------------------------------------------------------------|
+| `Text`           | `string`            | Plain text content                                                                         |
+| `TextHtml`       | `string`            | HTML with semantic markup (red/blue truth classes, ruby annotations, italic, colour spans) |
+| `CharacterID`    | `string`            | Numeric character ID (e.g. `"10"` for Battler) or `"narrator"`                             |
+| `Character`      | `string`            | Display name (e.g. `"Ushiromiya Battler"`)                                                 |
+| `AudioID`        | `string`            | Comma-separated voice file IDs                                                             |
+| `AudioCharMap`   | `map[string]string` | Audio ID to character ID mapping (multi-character quotes only)                             |
+| `AudioTextMap`   | `map[string]string` | Audio ID to spoken text fragment (multi-audio quotes only)                                 |
+| `Episode`        | `int`               | Episode number (1-8)                                                                       |
+| `ContentType`    | `string`            | `""` (main story), `"tea"`, `"ura"`, or `"omake"`                                          |
+| `HasRedTruth`    | `bool`              | Contains red truth                                                                         |
+| `HasBlueTruth`   | `bool`              | Contains blue truth                                                                        |
+| `HasGoldTruth`   | `bool`              | Contains gold truth                                                                        |
+| `HasPurpleTruth` | `bool`              | Contains purple statements                                                                 |
+| `SoundEffects`   | `[]SoundEffect`     | Associated sound effects with timing (`Filename`, `AfterClip`)                             |
 
 `SoundEffect` has two fields: `Filename` (e.g. `"umise_047"`) and `AfterClip` (voice clip index the SE plays after, or `-1` for before all clips).
 
