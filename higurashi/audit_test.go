@@ -3,6 +3,8 @@ package higurashi
 import (
 	"os"
 	"testing"
+
+	scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 )
 
 func TestAudit_FieldPopulation(t *testing.T) {
@@ -11,7 +13,7 @@ func TestAudit_FieldPopulation(t *testing.T) {
 		t.Skip("test data not found")
 	}
 
-	quotes, _, _ := ParseScriptText(string(data))
+	quotes, _, _ := scriptparser.ParseText(string(data), NewParser())
 
 	total := len(quotes)
 	hasText := 0

@@ -1,8 +1,6 @@
 package higurashi
 
 import (
-	"fmt"
-	"io"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,37 +10,22 @@ import (
 	"github.com/VictoriqueMoe/umineko_script_parser/dto"
 	"github.com/VictoriqueMoe/umineko_script_parser/higurashi/character"
 	hitransformer "github.com/VictoriqueMoe/umineko_script_parser/higurashi/transformer"
-	"github.com/VictoriqueMoe/umineko_script_parser/umineko/decoder"
 )
 
-type ParsedQuote = dto.HigurashiQuote
+type (
+	ParsedQuote = dto.HigurashiQuote
 
-func ParseScriptText(script string) ([]ParsedQuote, []scriptparser.ValidationError, error) {
-	if strings.ContainsRune(script, 0) {
-		return nil, nil, scriptparser.ErrBinaryInput
-	}
+	Parser struct{}
+)
 
-	lines := strings.Split(script, "\n")
-	raw := parse(lines)
-
-	factory := hitransformer.NewFactory()
-	quotes := buildQuotes(raw, factory)
-
-	return quotes, nil, nil
+func NewParser() *Parser {
+	return &Parser{}
 }
 
-func ParseFile(r io.Reader) ([]ParsedQuote, []scriptparser.ValidationError, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, nil, fmt.Errorf("read: %w", err)
-	}
-
-	decoded, err := decoder.Decode(data)
-	if err != nil {
-		return nil, nil, fmt.Errorf("decode: %w", err)
-	}
-
-	return ParseScriptText(string(decoded))
+func (p *Parser) ParseLines(lines []string) ([]ParsedQuote, []scriptparser.ValidationError) {
+	raw := parse(lines)
+	factory := hitransformer.NewFactory()
+	return buildQuotes(raw, factory), nil
 }
 
 func buildQuotes(raw []rawQuote, factory *hitransformer.Factory) []ParsedQuote {
