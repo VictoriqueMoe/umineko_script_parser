@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 	"github.com/VictoriqueMoe/umineko_script_parser/higurashi/character"
 )
 
@@ -16,7 +17,7 @@ func TestParseScriptText_BasicQuote(t *testing.T) {
 			NULL, "\"Hello\"", Line_Normal);
 	ClearMessage();`
 
-	quotes, _, err := ParseScriptText(input)
+	quotes, _, err := scriptparser.ParseText(input, NewParser())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,7 +51,7 @@ func TestParseScriptText_BasicQuote(t *testing.T) {
 }
 
 func TestParseScriptText_BinaryRejection(t *testing.T) {
-	_, _, err := ParseScriptText("some \x00 binary")
+	_, _, err := scriptparser.ParseText("some \x00 binary", NewParser())
 	if err == nil {
 		t.Fatal("expected error for binary input")
 	}
@@ -63,7 +64,7 @@ func TestParseScriptText_NarratorQuote(t *testing.T) {
 		   NULL, "The morning air was cold.", Line_Normal);
 	ClearMessage();`
 
-	quotes, _, err := ParseScriptText(input)
+	quotes, _, err := scriptparser.ParseText(input, NewParser())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestParseScriptText_RealData(t *testing.T) {
 		t.Skip("test data not found, skipping")
 	}
 
-	quotes, _, err := ParseScriptText(string(data))
+	quotes, _, err := scriptparser.ParseText(string(data), NewParser())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -151,7 +152,7 @@ func TestParseFile_RealData(t *testing.T) {
 	}
 	defer f.Close()
 
-	quotes, _, err := ParseFile(f)
+	quotes, _, err := scriptparser.ParseReader(f, NewParser())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

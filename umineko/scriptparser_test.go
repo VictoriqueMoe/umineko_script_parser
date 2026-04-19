@@ -10,7 +10,7 @@ import (
 )
 
 func TestPresetColoursParsedFromScript(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"preset_define 0,6,36,#FFFFFF,0,0,0,1,-1,#000000,0,-1,-1,#000000,1,-1 ;Japanse text",
@@ -50,7 +50,7 @@ func TestPresetColoursParsedFromScript(t *testing.T) {
 		`d [lv 0*"10"*"10100005"]"Text with {p:0:Japanese font preset} here."[\]`,
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) != 5 {
 		t.Fatalf("expected 5 quotes, got %d", len(quotes))
 	}
@@ -83,7 +83,7 @@ func TestPresetColoursParsedFromScript(t *testing.T) {
 }
 
 func TestParse_EpisodeAndContentTypes(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	type testCase struct {
 		name            string
@@ -332,7 +332,7 @@ func TestParse_EpisodeAndContentTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enQuotes, _, _ := p.parse(tt.enLines)
+			enQuotes, _ := p.ParseLines(tt.enLines)
 			if len(enQuotes) == 0 {
 				t.Fatal("EN: expected at least 1 quote, got 0")
 			}
@@ -360,7 +360,7 @@ func TestParse_EpisodeAndContentTypes(t *testing.T) {
 			}
 
 			if tt.jaLines != nil {
-				jaQuotes, _, _ := p.parse(tt.jaLines)
+				jaQuotes, _ := p.ParseLines(tt.jaLines)
 				if len(jaQuotes) == 0 {
 					t.Fatal("JA: expected at least 1 quote, got 0")
 				}
@@ -392,7 +392,7 @@ func TestParse_EpisodeAndContentTypes(t *testing.T) {
 }
 
 func TestParse_ContentTypeTransitions(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
@@ -405,7 +405,7 @@ func TestParse_ContentTypeTransitions(t *testing.T) {
 		"d [lv 0*\"10\"*\"20100001\"]`\"The second episode begins here with a long enough line.\" `[\\]",
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) != 4 {
 		t.Fatalf("expected 4 quotes, got %d", len(quotes))
 	}
@@ -428,7 +428,7 @@ func TestParse_ContentTypeTransitions(t *testing.T) {
 }
 
 func TestParse_OmakeTransition(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 8",
@@ -441,7 +441,7 @@ func TestParse_OmakeTransition(t *testing.T) {
 		"d [lv 0*\"10\"*\"20100001\"]`\"Omake episode 2 content with sufficient length here.\" `[\\]",
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) != 3 {
 		t.Fatalf("expected 3 quotes, got %d", len(quotes))
 	}
@@ -458,14 +458,14 @@ func TestParse_OmakeTransition(t *testing.T) {
 }
 
 func TestParse_RedTruth(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	t.Run("english red truth - Beatrice", func(t *testing.T) {
 		lines := []string{
 			"new_episode 2",
 			"d2 [lv 0*\"27\"*\"20700951\"]`\" `[#][*]`{p:1:Everything I speak in red is the truth}! `[@][lv 0*\"27\"*\"20700952\"]`There's absolutely no need to doubt it!\" `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -492,7 +492,7 @@ func TestParse_RedTruth(t *testing.T) {
 			"new_episode 2",
 			"d2 [lv 0*\"27\"*\"20700951\"]`\"\u300c`[#][*]`{p:1:\u59be\u304c\u8d64\u3067\u8a9e\u308b\u3053\u3068\u306f\u5168\u3066\u771f\u5b9f}\uff01`[@][lv 0*\"27\"*\"20700952\"]`\u3000\u7591\u3046\u5fc5\u8981\u304c\u4f55\u3082\u306a\u3044\uff01\u300d`[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -513,14 +513,14 @@ func TestParse_RedTruth(t *testing.T) {
 }
 
 func TestParse_BlueTruth(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	t.Run("english blue truth - Battler", func(t *testing.T) {
 		lines := []string{
 			"new_episode 4",
 			"d2 [lv 0*\"10\"*\"40100220\"]`\"This is my truth! `[@][lv 0*\"10\"*\"40100221\"]`{p:2:Ushiromiya Kinzo is already dead}. `[#][*][@][lv 0*\"10\"*\"40100222\"]`{p:2:Therefore, the true number of people on the island is 17}! `[#][*][@][lv 0*\"10\"*\"40100223\"]`{p:2:By adding an unknown person X to that, it becomes 18 people}. `[#][*][@][lv 0*\"10\"*\"40100224\"]`{p:2:By supposing that this person X exists, the crime is possible even if all 17 people have alibis}!!\" `[#][*][\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -550,7 +550,7 @@ func TestParse_BlueTruth(t *testing.T) {
 			"new_episode 4",
 			"d2 [lv 0*\"10\"*\"40100220\"]`\"\u3053\u308c\u304c\u4fc5\u306e\u771f\u5b9f\u3060\uff01`[@][lv 0*\"10\"*\"40100221\"]`\u3000{p:2:\u53f3\u4ee3\u5bae\u91d1\u8535\u306f\u3059\u3067\u306b\u6b7b\u4ea1\u3057\u3066\u3044\u308b}\u3002`[#][*][@][lv 0*\"10\"*\"40100222\"]`{p:2:\u3088\u3063\u3066\u5cf6\u306e\u672c\u5f53\u306e\u4eba\u6570\u306f\uff11\uff17\u4eba}\uff01`[#][*][@][lv 0*\"10\"*\"40100223\"]`\u3000{p:2:\u305d\u3053\u306b\u672a\u77e5\u306e\u4eba\u7269\uff38\u304c\u52a0\u308f\u308b\u3053\u3068\u3067\uff11\uff18\u4eba\u3068\u306a\u3063\u3066\u3044\u308b}\u3002`[#][*][@][lv 0*\"10\"*\"40100224\"]`{p:2:\u3053\u306e\u4eba\u7269\uff38\u306e\u5b58\u5728\u306e\u4eee\u5b9a\u306b\u3088\u3063\u3066\u3001\uff11\uff17\u4eba\u5168\u54e1\u306b\u30a2\u30ea\u30d0\u30a4\u304c\u3042\u3063\u3066\u3082\u72af\u884c\u306f\u53ef\u80fd\u306b\u306a\u308b}\u30c3\uff01\uff01\u300d`[#][*][\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -571,13 +571,13 @@ func TestParse_BlueTruth(t *testing.T) {
 }
 
 func TestParse_ColourFormatting(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		"d [lv 0*\"19\"*\"11900003\"]`\"............Kinzo\u2010{c:86EF9C:san}. `[gstg 1][@][lv 0*\"19\"*\"11900004\"]`...your body only appears to be well thanks to the effects of the medicine.\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -596,13 +596,13 @@ func TestParse_ColourFormatting(t *testing.T) {
 }
 
 func TestParse_RubyAnnotations(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		"d `You can't really tell Grandfather's story without covering that pivotal event back before the {ruby:1926-1989:Showa} era. `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -618,13 +618,13 @@ func TestParse_RubyAnnotations(t *testing.T) {
 }
 
 func TestParse_FontNameFormatting(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_ura 1",
 		"d2 [lv 0*\"27\"*\"90700093\"]`\"...*cackle*cackle* Hostility? I bear nothing of the sort. `[@][#][*][lv 0*\"27\"*\"90700094\"]`...I am just terribly concerned with seeing to it that the legendary witch, Lady {f:5:Bernkastel}, is well attended to.\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -645,13 +645,13 @@ func TestParse_FontNameFormatting(t *testing.T) {
 }
 
 func TestParse_FontSelectionPassthrough(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		"d [lv 0*\"01\"*\"11500055\"]`And even if I had a chance to write such a thing, `[|][lv 0*\"01\"*\"11500056\"]`......if I did have such a chance!!\" `[@][lv 0*\"01\"*\"11500057\"]`\"...I'd want to see it. `[@][lv 0*\"01\"*\"11500058\"]`I want to see it one more time! `[@][lv 0*\"01\"*\"11500059\"]`I want to see {f:5:Beatrice}'s smiling face one last time!! `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -672,14 +672,14 @@ func TestParse_FontSelectionPassthrough(t *testing.T) {
 }
 
 func TestParse_PresetGoldText(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"preset_define 41,1,-1,#FFAA00,0,0,0,1,-1,#000000,0,-1,-1,#000000,1,-1 ;Gold text",
 		"new_episode 5",
 		"d [lv 0*\"10\"*\"50101465\"]`\"{p:41:I guarantee that this is the corpse of Ushiromiya Kinzo}...!!\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -700,14 +700,14 @@ func TestParse_PresetGoldText(t *testing.T) {
 }
 
 func TestParse_PresetPurpleText(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"preset_define 42,1,-1,#AA71FF,0,0,0,1,-1,#000000,0,-1,-1,#000000,1,-1 ;Purple text",
 		"new_episode 8",
 		"d [lv 0*\"17\"*\"81700082\"]`\"{p:42:The dining hall was locked up}. `[@][lv 0*\"17\"*\"81700083\"]`Of course, there is a lock on the doors to the dining hall, but they usually remained unlocked. `[@][lv 0*\"17\"*\"81700084\"]`I knocked, but there was no answer...\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -728,14 +728,14 @@ func TestParse_PresetPurpleText(t *testing.T) {
 }
 
 func TestParse_PresetPassthrough(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"preset_define 0,6,36,#FFFFFF,0,0,0,1,-1,#000000,0,-1,-1,#000000,1,-1 ;Japanese text (white)",
 		"new_episode 1",
 		"d `My name is written {p:0:\u53f3\u4ee3\u5bae \u6226\u4eba}. `[@]`Can you read it? `[@]`The first part is my family name, \"Ushiromiya\". `[@]`That's a fairly plausible Japanese pronunciation so far. `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -756,13 +756,13 @@ func TestParse_PresetPassthrough(t *testing.T) {
 }
 
 func TestParse_StrayBracesStripped(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 5",
 		`d2 [lv 0*"47"*"54600338"][#][*]` + "`" + `"{p:1:Die the death!  ` + "`" + `[|][lv 0*"47"*"54600339"][#][*][!w167]` + "`" + `Sentence to death!!{n}` + "`" + `[|][lv 0*"47"*"54600340"][#][*][!w167]` + "`" + `Great equalizer is the death!!}" ` + "`" + `[\]`,
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -780,13 +780,13 @@ func TestParse_StrayBracesStripped(t *testing.T) {
 }
 
 func TestParse_ItalicFormatting(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		"d `...Wait a sec, we {i:are} totally sure it's not gonna shake, ...right...? `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -804,14 +804,14 @@ func TestParse_ItalicFormatting(t *testing.T) {
 }
 
 func TestParse_LineBreaks(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	t.Run("english narrator with line break tag", func(t *testing.T) {
 		lines := []string{
 			"new_episode 1",
 			"d `In the corner of this room, which was larger than most, `[@]`{n}was an expensive-looking bed and a physician conducting an examination. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -830,7 +830,7 @@ func TestParse_LineBreaks(t *testing.T) {
 			"new_episode 8",
 			"d `\u793c\u62dd\u5802\u306e\u4e2d\u306b\u306f\u3001\u2026\u2026\u4e8c\u4eba\u306e\u4eba\u5f71\u3002`[@]`{n}\u305d\u308c\u306f\u3001\u5144\u3068\u3001\u59b9\u306e\u59ff\u3002`[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -849,14 +849,14 @@ func TestParse_LineBreaks(t *testing.T) {
 }
 
 func TestParse_NarratorLines(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	t.Run("english narrator basic", func(t *testing.T) {
 		lines := []string{
 			"new_episode 1",
 			"d `The old physician let out a sigh as he removed the stethoscope. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -884,7 +884,7 @@ func TestParse_NarratorLines(t *testing.T) {
 			"new_episode 1",
 			"d `\u8074\u8a3a\u5668\u3092\u5916\u3057\u306a\u304c\u3089\u3001\u5e74\u8f29\u306e\u533b\u5e2b\u306f\u6e9c\u3081\u606f\u3092\u6f0f\u3089\u3059\u3002`[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -909,7 +909,7 @@ func TestParse_NarratorLines(t *testing.T) {
 			"new_episode 1",
 			"d2 `After eyeing both the master who demanded the alcohol and the family doctor who forbade it, `[@][#][*]`Genji, the old butler, silently gave a slight nod and carried out his master's orders faithfully. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -928,7 +928,7 @@ func TestParse_NarratorLines(t *testing.T) {
 			"new_episode 1",
 			"d2 `\u6e90\u6b21\u3068\u547c\u3070\u308c\u305f\u8001\u9f62\u306e\u57f7\u4e8b\u306f\u3001\u9152\u3092\u6c42\u3081\u308b\u4e3b\u3068\u3001\u305d\u308c\u3092\u6b62\u3081\u308b\u4e3b\u6cbb\u533b\u306e\u53cc\u65b9\u3092\u898b\u6bd4\u3079\u305f\u5f8c\u3001`[@][#][*]`\u7121\u8a00\u3067\u5c0f\u3055\u304f\u9837\u304d\u3001\u5df1\u306e\u4e3b\u306e\u547d\u4ee4\u306b\u5fe0\u5b9f\u306b\u5f93\u3046\u306e\u3060\u3063\u305f\u3002`[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -947,7 +947,7 @@ func TestParse_NarratorLines(t *testing.T) {
 			"new_episode 8",
 			"d `Two silhouettes could be seen in the chapel. `[@]`A big brother...and a little sister. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -966,14 +966,14 @@ func TestParse_NarratorLines(t *testing.T) {
 }
 
 func TestParse_MultipleAudioIDs(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 5",
 		"d2 [lv 0*\"27\"*\"50700001\"]`\"You idiot!! `[@][lv 0*\"27\"*\"50700002\"]`Isn't it obvious?!! `[@][#][*][lv 0*\"27\"*\"50700003\"]`It'll be fun to kill her and see your face twist in pain, why else?!! `[@][lv 0*\"27\"*\"50700004\"]`Gahyahahahahahahaha!!\" `[\\]",
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -985,14 +985,14 @@ func TestParse_MultipleAudioIDs(t *testing.T) {
 }
 
 func TestParse_DuplicateAudioIDsDeduped(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		"d [lv 0*\"10\"*\"10100001\"][lv 0*\"10\"*\"10100001\"]`\"This line has duplicate audio IDs that should be deduped.\" `[\\]",
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1002,14 +1002,14 @@ func TestParse_DuplicateAudioIDsDeduped(t *testing.T) {
 }
 
 func TestParse_SpecialCharTags(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	t.Run("qt tag produces double quote", func(t *testing.T) {
 		lines := []string{
 			"new_episode 1",
 			"d `She said {qt}hello there{qt} in a cheerful and bright tone of voice. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -1023,7 +1023,7 @@ func TestParse_SpecialCharTags(t *testing.T) {
 			"new_episode 1",
 			"d `The text contains {ob}curly braces{eb} that need preserving somehow. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -1040,7 +1040,7 @@ func TestParse_SpecialCharTags(t *testing.T) {
 			"new_episode 1",
 			"d `The text contains {os}square brackets{es} inside here I think. `[\\]",
 		}
-		quotes, _, _ := p.parse(lines)
+		quotes, _ := p.ParseLines(lines)
 		if len(quotes) == 0 {
 			t.Fatal("expected at least 1 quote")
 		}
@@ -1051,12 +1051,12 @@ func TestParse_SpecialCharTags(t *testing.T) {
 }
 
 func TestParse_EpisodeFromAudioID(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"d [lv 0*\"10\"*\"30100001\"]`\"This is a line with enough text for the parser filter.\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1066,13 +1066,13 @@ func TestParse_EpisodeFromAudioID(t *testing.T) {
 }
 
 func TestParse_EpisodeMarkerOverridesAudioID(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 7",
 		"d [lv 0*\"10\"*\"30100001\"]`\"This is a line with enough text for the parser filter.\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1082,7 +1082,7 @@ func TestParse_EpisodeMarkerOverridesAudioID(t *testing.T) {
 }
 
 func TestParse_NonDialogueNonNarratorLinesSkipped(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
@@ -1096,28 +1096,28 @@ func TestParse_NonDialogueNonNarratorLinesSkipped(t *testing.T) {
 		"d [lv 0*\"19\"*\"11900001\"]`\"This is the only actual dialogue line with enough text.\" `[\\]",
 		"lss s0_8,\"nan\",\"a1_fumu1\" ;1",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) != 1 {
 		t.Fatalf("expected 1 quote from mixed lines, got %d", len(quotes))
 	}
 }
 
 func TestParse_EmptyInput(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
-	quotes, _, _ := p.parse(nil)
+	quotes, _ := p.ParseLines(nil)
 	if len(quotes) != 0 {
 		t.Errorf("expected 0 quotes for nil input, got %d", len(quotes))
 	}
 
-	quotes, _, _ = p.parse([]string{})
+	quotes, _ = p.ParseLines([]string{})
 	if len(quotes) != 0 {
 		t.Errorf("expected 0 quotes for empty input, got %d", len(quotes))
 	}
 }
 
 func TestParse_AllEpisodes(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	var lines []string
 	for ep := 1; ep <= 8; ep++ {
@@ -1127,7 +1127,7 @@ func TestParse_AllEpisodes(t *testing.T) {
 		)
 	}
 
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) != 8 {
 		t.Fatalf("expected 8 quotes, got %d", len(quotes))
 	}
@@ -1143,7 +1143,7 @@ func TestParse_AllEpisodes(t *testing.T) {
 }
 
 func TestParse_AllContentTypesPerEpisode(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	for ep := 1; ep <= 8; ep++ {
 		epStr := string(rune('0' + ep))
@@ -1156,7 +1156,7 @@ func TestParse_AllContentTypesPerEpisode(t *testing.T) {
 				"new_ura " + epStr,
 				"d [lv 0*\"10\"*\"9210000" + epStr + "\"]`\"Ura content for this episode that passes the length filter.\" `[\\]",
 			}
-			quotes, _, _ := p.parse(lines)
+			quotes, _ := p.ParseLines(lines)
 			if len(quotes) != 3 {
 				t.Fatalf("expected 3 quotes, got %d", len(quotes))
 			}
@@ -1174,13 +1174,13 @@ func TestParse_AllContentTypesPerEpisode(t *testing.T) {
 }
 
 func TestParse_UnclosedTagCleanup(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 7",
 		"d2 [lv 0*\"46\"*\"54501382\"]`\"`[#][*]`{p:1:During that one hour, you were in the dining hall of the mansion}!! `[@][lv 0*\"46\"*\"54501383\"]`{p:1:This text has an unclosed tag that should be cleaned up`[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1195,13 +1195,13 @@ func TestParse_UnclosedTagCleanup(t *testing.T) {
 }
 
 func TestParse_MixedRedBlueTruth(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_tea 5",
 		"d2 [lv 0*\"46\"*\"54501382\"]`\"`[#][*]`{p:2:It's only possible for the crimes to have taken place during the single hour after midnight}!! `[@][lv 0*\"46\"*\"54501383\"]`{p:1:During that one hour, you were in the dining hall of the mansion}!! `[@][lv 0*\"46\"*\"54501384\"]`{p:2:Therefore, it was impossible for you to commit the crimes}!\" `[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1230,13 +1230,13 @@ func TestParse_MixedRedBlueTruth(t *testing.T) {
 }
 
 func TestParse_NestedTagsInTruth(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 2",
 		`d2 [lv 0*"27"*"20700984"]` + "`" + `"You talk too much, you incompetent fool. ` + "`" + `[@][lv 0*"27"*"20700985"]` + "`" + `Then let me expand on my earlier move. ` + "`" + `[@][lv 0*"27"*"20700986"][#][*]` + "`" + `{p:1:The six definitely entered through {i:this front door}}!!" ` + "`" + `[\]`,
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1256,13 +1256,13 @@ func TestParse_NestedTagsInTruth(t *testing.T) {
 }
 
 func TestParse_NestedNobrInTruth(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 5",
 		`d2 [lv 0*"28"*"52100552"]` + "`" + `"I'll respond. ` + "`" + `[@][lv 0*"28"*"52100553"][#][*]` + "`" + `{p:1:From {nobr:1 a.m.} to {nobr:3 a.m.}, the trio of Erika, Nanjo, and Gohda... ` + "`" + `[@][lv 0*"28"*"52100554"]` + "`" + `spent their time in the lounge on the first floor of the guesthouse}." ` + "`" + `[\]`,
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1285,7 +1285,7 @@ func TestParse_NestedNobrInTruth(t *testing.T) {
 }
 
 func TestParse_AlphanumericAudioIDs(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	tests := []struct {
 		name         string
@@ -1337,7 +1337,7 @@ func TestParse_AlphanumericAudioIDs(t *testing.T) {
 				"new_episode 1",
 				tt.line,
 			}
-			quotes, _, _ := p.parse(lines)
+			quotes, _ := p.ParseLines(lines)
 			if len(quotes) == 0 {
 				t.Fatal("expected at least 1 quote, got 0")
 			}
@@ -1356,14 +1356,14 @@ func TestParse_AlphanumericAudioIDs(t *testing.T) {
 }
 
 func TestParse_OmakeNarratorLine(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"*o1_0",
 		"*o1_2",
 		"d `Jessica's piercing shriek rang out across the entire building.`[\\]",
 	}
-	quotes, _, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
 	if len(quotes) == 0 {
 		t.Fatal("expected at least 1 quote")
 	}
@@ -1384,7 +1384,7 @@ func TestParse_OmakeNarratorLine(t *testing.T) {
 }
 
 func TestParse_CleanupPatterns(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	tests := []struct {
 		name     string
@@ -1454,7 +1454,7 @@ func TestParse_CleanupPatterns(t *testing.T) {
 				"new_episode 1",
 				tt.line,
 			}
-			quotes, _, _ := p.parse(lines)
+			quotes, _ := p.ParseLines(lines)
 			if len(quotes) == 0 {
 				t.Fatalf("expected at least 1 quote for input: %s", tt.line)
 			}
@@ -1470,7 +1470,7 @@ func TestParse_CleanupPatterns(t *testing.T) {
 }
 
 func TestParse_SubtitleRefsCollected(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		`stralias end_all00_subs,"video\sub\end_all00_eng.ass"`,
@@ -1479,7 +1479,8 @@ func TestParse_SubtitleRefsCollected(t *testing.T) {
 		"ssa_load 8,end_all00_subs,30",
 	}
 
-	_, refs, _ := p.parse(lines)
+	p.ParseLines(lines)
+	refs := p.SubtitleRefs()
 
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 subtitle ref, got %d", len(refs))
@@ -1501,14 +1502,15 @@ func TestParse_SubtitleRefsCollected(t *testing.T) {
 }
 
 func TestParse_SubtitleRefsEmpty(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		`d [lv 0*"10"*"10100001"]` + "`\"Just regular dialogue.\"`" + `[\]`,
 	}
 
-	_, refs, _ := p.parse(lines)
+	p.ParseLines(lines)
+	refs := p.SubtitleRefs()
 
 	if len(refs) != 0 {
 		t.Errorf("expected 0 subtitle refs for regular dialogue, got %d", len(refs))
@@ -1516,7 +1518,7 @@ func TestParse_SubtitleRefsEmpty(t *testing.T) {
 }
 
 func TestParse_PreFilterIncludesSubtitleLines(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		`stralias end_all00_subs,"video\sub\end_all00_eng.ass"`,
@@ -1528,7 +1530,8 @@ func TestParse_PreFilterIncludesSubtitleLines(t *testing.T) {
 		`d [lv 0*"10"*"80100001"]` + "`\"Dialogue after subtitle.\"`" + `[\]`,
 	}
 
-	quotes, refs, _ := p.parse(lines)
+	quotes, _ := p.ParseLines(lines)
+	refs := p.SubtitleRefs()
 
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 subtitle ref, got %d", len(refs))
@@ -1542,14 +1545,14 @@ func TestParse_PreFilterIncludesSubtitleLines(t *testing.T) {
 }
 
 func TestParse_ValidationErrors_UnknownTag(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"new_episode 1",
 		`d [lv 0*"10"*"10100001"]` + "`\"{bogus:some content}\"`" + `[\]`,
 	}
 
-	quotes, _, validationErrors := p.parse(lines)
+	quotes, validationErrors := p.ParseLines(lines)
 
 	if len(quotes) != 1 {
 		t.Fatalf("expected 1 quote despite validation error, got %d", len(quotes))
@@ -1568,7 +1571,7 @@ func TestParse_ValidationErrors_UnknownTag(t *testing.T) {
 }
 
 func TestParse_ValidationErrors_NoErrorsForValidInput(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		"preset_define 1,1,-1,#FF0000,0,0,0,0,0",
@@ -1577,7 +1580,7 @@ func TestParse_ValidationErrors_NoErrorsForValidInput(t *testing.T) {
 		`d [lv 0*"27"*"30700001"]` + "`\"{p:1:Red truth here}.\"`" + `[\]`,
 	}
 
-	_, _, validationErrors := p.parse(lines)
+	_, validationErrors := p.ParseLines(lines)
 
 	if len(validationErrors) != 0 {
 		t.Errorf("expected no validation errors, got %d:", len(validationErrors))
@@ -1598,7 +1601,7 @@ meplay 2,5,40
 d [lv 0*"10"*"10100002"]` + "`\"Background noise.\"`" + `[\]
 d [lv 0*"10"*"10100003"]` + "`\"No SE here.\"`" + `[\]`
 
-	quotes, _, _, err := ParseScriptText(script)
+	quotes, _, err := scriptparser.ParseText(script, NewParser())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1640,7 +1643,7 @@ wait_on_d 1
 seplay 1,3,71
 d [lv 0*"10"*"10100001"]` + "`\"Next line.\"`" + `[\]`
 
-	quotes, _, _, err := ParseScriptText(script)
+	quotes, _, err := scriptparser.ParseText(script, NewParser())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1665,13 +1668,13 @@ d [lv 0*"10"*"10100001"]` + "`\"Next line.\"`" + `[\]`
 }
 
 func TestParse_ValidationErrors_VoiceMissingFields(t *testing.T) {
-	p := newParser()
+	p := NewParser()
 
 	lines := []string{
 		`d [lv 0]` + "`\"Broken voice.\"`" + `[\]`,
 	}
 
-	_, _, validationErrors := p.parse(lines)
+	_, validationErrors := p.ParseLines(lines)
 
 	found := false
 	for _, err := range validationErrors {
@@ -1689,7 +1692,7 @@ func TestParse_AppliesMutations(t *testing.T) {
 	script := "new_episode 2\n" +
 		`d [lv 0*"46"*"20600528"]` + "`\"This is actually Kanon.\"`" + `[\]`
 
-	quotes, _, _, err := ParseScriptText(script)
+	quotes, _, err := scriptparser.ParseText(script, NewParser())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1708,7 +1711,7 @@ func TestParse_ReturnsValidationErrors(t *testing.T) {
 	script := "new_episode 1\n" +
 		`d [lv 0*"10"*"10100001"]` + "`\"{bogus:broken tag}\"`" + `[\]`
 
-	_, _, validationErrors, err := ParseScriptText(script)
+	_, validationErrors, err := scriptparser.ParseText(script, NewParser())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1727,7 +1730,7 @@ func TestParse_ReturnsValidationErrors(t *testing.T) {
 
 func TestParseScriptText_RejectsBinaryInput(t *testing.T) {
 	binary := "d \x00\x01\x02\xff some binary garbage"
-	_, _, _, err := ParseScriptText(binary)
+	_, _, err := scriptparser.ParseText(binary, NewParser())
 	if !errors.Is(err, scriptparser.ErrBinaryInput) {
 		t.Fatalf("expected ErrBinaryInput, got %v", err)
 	}

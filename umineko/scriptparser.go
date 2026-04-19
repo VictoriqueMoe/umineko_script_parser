@@ -1,8 +1,6 @@
 package umineko
 
 import (
-	"fmt"
-	"io"
 	"runtime"
 	"strings"
 	"sync"
@@ -10,7 +8,6 @@ import (
 	scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 	"github.com/VictoriqueMoe/umineko_script_parser/dto"
 	"github.com/VictoriqueMoe/umineko_script_parser/umineko/character"
-	"github.com/VictoriqueMoe/umineko_script_parser/umineko/decoder"
 	"github.com/VictoriqueMoe/umineko_script_parser/umineko/lexer"
 	"github.com/VictoriqueMoe/umineko_script_parser/umineko/mutation"
 	"github.com/VictoriqueMoe/umineko_script_parser/umineko/transformer"
@@ -19,49 +16,23 @@ import (
 type (
 	ParsedQuote = dto.UminekoQuote
 
-	parser struct {
+	Parser struct {
 		extractor *lexer.QuoteExtractor
 		factory   *transformer.Factory
 		mutations mutation.Pipeline
 	}
 )
 
-func ParseScriptText(script string) ([]ParsedQuote, []lexer.SubtitleRef, []scriptparser.ValidationError, error) {
-	if strings.ContainsRune(script, 0) {
-		return nil, nil, nil, scriptparser.ErrBinaryInput
-	}
-	p := newParser()
-	quotes, refs, validationErrors := p.parse(strings.Split(script, "\n"))
-	return quotes, refs, validationErrors, nil
-}
-
-func ParseFile(r io.Reader) ([]ParsedQuote, []lexer.SubtitleRef, []scriptparser.ValidationError, error) {
-	raw, err := io.ReadAll(r)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("read: %w", err)
-	}
-	decoded, err := decoder.Decode(raw)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("decode: %w", err)
-	}
-	quotes, refs, validationErrors, err := ParseScriptText(string(decoded))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return quotes, refs, validationErrors, nil
-}
-
-func newParser() *parser {
+func NewParser() *Parser {
 	extractor := lexer.NewQuoteExtractor()
-
-	return &parser{
+	return &Parser{
 		extractor: extractor,
 		factory:   transformer.NewFactory(extractor.Presets()),
 		mutations: *mutation.NewPipeline(),
 	}
 }
 
-func (p *parser) parse(lines []string) ([]ParsedQuote, []lexer.SubtitleRef, []scriptparser.ValidationError) {
+func (p *Parser) ParseLines(lines []string) ([]ParsedQuote, []scriptparser.ValidationError) {
 	filtered := make([]string, 0, len(lines)/8)
 	seFileMap := make(map[int]string)
 
@@ -172,5 +143,9 @@ func (p *parser) parse(lines []string) ([]ParsedQuote, []lexer.SubtitleRef, []sc
 
 	quotes = p.mutations.Apply(quotes)
 
-	return quotes, p.extractor.SubtitleRefs(), p.extractor.ValidationErrors()
+	return quotes, p.extractor.ValidationErrors()
+}
+
+func (p *Parser) SubtitleRefs() []lexer.SubtitleRef {
+	return p.extractor.SubtitleRefs()
 }

@@ -3,6 +3,8 @@ package higurashi
 import (
 	"strings"
 	"testing"
+
+	scriptparser "github.com/VictoriqueMoe/umineko_script_parser"
 )
 
 func TestParseScriptText_BreakfastScene(t *testing.T) {
@@ -41,7 +43,7 @@ func TestParseScriptText_BreakfastScene(t *testing.T) {
 		   NULL, "\"Pile it on.\"", GetGlobalFlag(GLinemodeSp));
 	if (GetGlobalFlag(GADVMode)) { ClearMessage(); } else { OutputLineAll(NULL, "\n", Line_ContinueAfterTyping); }`
 
-	quotes, _, err := ParseScriptText(input)
+	quotes, _, err := scriptparser.ParseText(input, NewParser())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
